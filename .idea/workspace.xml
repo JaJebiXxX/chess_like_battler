@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2d513a16-9f14-420d-b807-25c921b58a09" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="2d513a16-9f14-420d-b807-25c921b58a09" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -21,12 +19,12 @@
     &quot;assignee&quot;: &quot;adero0&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/JaJebiXxX/auto_chess_battler.git&quot;,
-    &quot;accountId&quot;: &quot;709ce553-411c-403a-acb1-fc5f9b7fd78c&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/JaJebiXxX/chess_like_battler.git",
+    "accountId": "86bc6c39-9491-4070-a7a7-1512b159d19c"
   }
-}</component>
+}]]></component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -39,6 +37,7 @@
   &quot;associatedIndex&quot;: 0
 }</component>
   <component name="ProjectId" id="33Y4cpeBHrXD0bHzVCS8BuZuTeD" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -51,7 +50,7 @@
     "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "Spring Boot.AutoChessBattlerApplication.executor": "Run",
-    "git-widget-placeholder": "akacin-branch",
+    "git-widget-placeholder": "nieakacin-branch",
     "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Ato_robie/kornilowicz_jawka/auto-chess-battler",
