@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [message, setMessage] = useState('Ładowanie...')
+
+  useEffect(() => {
+    fetch('http://localhost:8080/xd/Junie')
+      .then(response => response.text())
+      .then(data => setMessage(data))
+      .catch(error => setMessage('Błąd: ' + error))
+  }, [])
 
   return (
     <>
@@ -18,6 +26,7 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
+        <p>Wiadomość z backendu: <b>{message}</b></p>
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
         </button>
