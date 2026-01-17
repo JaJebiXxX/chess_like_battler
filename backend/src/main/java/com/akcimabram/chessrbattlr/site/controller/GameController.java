@@ -15,16 +15,24 @@ import java.util.Map;
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/xd")
-public class TestController {
+@RequestMapping("/api/game")
+public class GameController {
 
-    @GetMapping("/{nazwa}")
-    public ResponseEntity<Board> test(@PathVariable String nazwa) {
+    @GetMapping("/board")
+    public ResponseEntity<Board> getBoard() {
 
+        int value = 0;
         Board board = new Board(10, 10);
+
         for (int i = 0; i < board.getX(); i++) {
             for (int j = 0; j < board.getY(); j++) {
-                board.fields[i][j] = new Field(i, j, FieldType.NORMAL, null);
+                FieldType type = FieldType.NORMAL;
+                if ((i == 4 || i == 5) && (j == 0 || j == 9)) {
+                    type = FieldType.HP_BASE;
+                    value = 10;
+                }
+                board.fields[i][j] = new Field(i, j, type, null, value);
+                value = 0;
             }
         }
 

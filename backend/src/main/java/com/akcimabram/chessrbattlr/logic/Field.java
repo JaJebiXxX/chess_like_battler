@@ -7,12 +7,14 @@ public class Field {
     public int coordinateY;
     public FieldType fieldType;
     public Figure whosHere;
+    public int value;
 
-    public Field(int coordinateX, int coordinateY, FieldType fieldType, Figure whosHere) {
+    public Field(int coordinateX, int coordinateY, FieldType fieldType, Figure whosHere, int value) {
         this.coordinateX = coordinateX;
         this.coordinateY = coordinateY;
         this.fieldType = fieldType;
         this.whosHere = whosHere;
+        this.value = value;
     }
 }
 
