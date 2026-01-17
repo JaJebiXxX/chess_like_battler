@@ -1,5 +1,7 @@
 package com.akcimabram.chessrbattlr.logic.Figures;
 
+import com.akcimabram.chessrbattlr.logic.Board;
+import com.akcimabram.chessrbattlr.logic.Field;
 import com.akcimabram.chessrbattlr.logic.Figure;
 
 public class Soldier1 extends Figure {
@@ -14,7 +16,7 @@ public class Soldier1 extends Figure {
     }
 
     @Override
-    public void possibleMoves() {
+    public void possibleMoves(Board board, Field currentField) {
 
     }
 

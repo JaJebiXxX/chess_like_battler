@@ -1,4 +1,6 @@
 package com.akcimabram.chessrbattlr.logic;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.List;
 
 public abstract class Figure {
 
@@ -8,15 +10,23 @@ public abstract class Figure {
 
     private int damage;
 
+    @JsonIgnore
+    private List<Field> possibleMoves;
+
+    private String type;
+    private String color;
+
     public Figure(int health, int cost, int damage) {
         this.health = health;
         this.cost = cost;
         this.damage = damage;
+        this.type = "TRIANGLE";
+        this.color = "WHITE";
     }
 
     public abstract void move();
 
-    public abstract void possibleMoves();
+    public abstract void possibleMoves(Board board, Field currentField);
 
     public abstract void safeDelete();
 
@@ -53,5 +63,31 @@ public abstract class Figure {
 
     public void setDamage(int damage) {
         this.damage = damage;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    @JsonIgnore
+    public List<Field> getPossibleMoves() {
+        return possibleMoves;
+    }
+
+    @JsonIgnore
+    public void setPossibleMoves(List<Field> possibleMoves) {
+        this.possibleMoves = possibleMoves;
     }
 }
