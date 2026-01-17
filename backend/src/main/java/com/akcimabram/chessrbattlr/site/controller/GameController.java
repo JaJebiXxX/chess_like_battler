@@ -21,16 +21,18 @@ public class GameController {
     @GetMapping("/board")
     public ResponseEntity<Board> getBoard() {
 
+        int value = 0;
         Board board = new Board(10, 10);
+
         for (int i = 0; i < board.getX(); i++) {
             for (int j = 0; j < board.getY(); j++) {
                 FieldType type = FieldType.NORMAL;
-                if (i == 0 || i == 9) type = FieldType.HP_BASE;
-                else if ((i + j) % 7 == 0) type = FieldType.MANA;
-                else if ((i + j) % 5 == 0) type = FieldType.HP_FIGURE;
-                
-                int value = (type == FieldType.NORMAL) ? 0 : (int)(Math.random() * 10) + 1;
+                if ((i == 4 || i == 5) && (j == 0 || j == 9)) {
+                    type = FieldType.HP_BASE;
+                    value = 10;
+                }
                 board.fields[i][j] = new Field(i, j, type, null, value);
+                value = 0;
             }
         }
 
