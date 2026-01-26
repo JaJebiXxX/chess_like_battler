@@ -53,6 +53,7 @@ interface Field {
   fieldType: FieldType;
   whosHere: Figure | null;
   value: number;
+  possibleMoves: { x: number, y: number }[] | null;
 }
 
 interface Board {
@@ -108,6 +109,7 @@ function App() {
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedField, setSelectedField] = useState<Field | null>(null);
   
   // Mock player state
   const [player1] = useState<PlayerState>({ name: 'Player 1', mana: 3, maxMana: 10 });
@@ -132,6 +134,39 @@ function App() {
       });
   }, []);
 
+  const handleFieldClick = (field: Field) => {
+    // If a figure is already selected, try to move it
+    if (selectedField && selectedField.whosHere) {
+      const canMove = selectedField.possibleMoves?.some(
+        m => m.x === field.coordinateX && m.y === field.coordinateY
+      );
+
+      if (canMove) {
+        fetch(`http://localhost:8080/api/game/move/${selectedField.coordinateX}/${selectedField.coordinateY}/${field.coordinateX}/${field.coordinateY}`, {
+          method: 'POST'
+        })
+          .then(res => res.json())
+          .then((data: Board) => {
+            setBoard(data);
+            setSelectedField(null);
+          })
+          .catch(err => console.error("Move failed:", err));
+        return;
+      }
+    }
+
+    // Otherwise, select the field if it has a figure
+    if (field.whosHere) {
+      setSelectedField(field);
+    } else {
+      setSelectedField(null);
+    }
+  };
+
+  const isHighlighted = (x: number, y: number) => {
+    return selectedField?.possibleMoves?.some(m => m.x === x && m.y === y);
+  };
+
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, unit: UnitDefinition) => {
     event.dataTransfer.setData('unit', JSON.stringify(unit));
     event.dataTransfer.effectAllowed = 'copy';
@@ -149,28 +184,14 @@ function App() {
     if (unitData && board) {
       const unit: UnitDefinition = JSON.parse(unitData);
       
-      const newFigure: Figure = {
-        type: unit.type,
-        color: unit.color,
-        health: unit.health,
-        damage: unit.damage,
-        cost: unit.cost,
-        maxHealth: unit.health
-      };
-
-      // Create a deep copy of the fields
-      const newFields = board.fields.map(col => col.map(field => ({ ...field })));
-      
-      // Update the target field (Note: fields is accessed as fields[x][y])
-      // Ensure indices are within bounds
-      if (newFields[targetX] && newFields[targetX][targetY]) {
-        newFields[targetX][targetY].whosHere = newFigure;
-        
-        setBoard({
-          ...board,
-          fields: newFields
-        });
-      }
+      fetch(`http://localhost:8080/api/game/place/${unit.type}/${unit.color}/${targetX}/${targetY}`, {
+        method: 'POST'
+      })
+        .then(res => res.json())
+        .then((data: Board) => {
+          setBoard(data);
+        })
+        .catch(err => console.error("Placement failed:", err));
     }
   };
 
@@ -245,10 +266,16 @@ function App() {
                 {column.map((field, rowIndex) => (
                   <div 
                     key={`field-${field.coordinateX}-${field.coordinateY}`} 
-                    className={`board-field ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} ${field.fieldType.toLowerCase().replace('_', '-')}`}
+                    className={`board-field 
+                      ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} 
+                      ${field.fieldType.toLowerCase().replace('_', '-')}
+                      ${selectedField === field ? 'selected' : ''}
+                      ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
+                    `}
                     title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
+                    onClick={() => handleFieldClick(field)}
                   >
                     {field.fieldType !== FieldType.NORMAL && field.value}
                     {field.whosHere && (
