@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class Soldier3 extends Figure {
 
     public Soldier3() {
-        super(50, 0, 1);
+        super(10, 0, 1);
     }
 
     @Override
@@ -22,6 +22,7 @@ public class Soldier3 extends Figure {
         int x = currentField.coordinateX;
         int y = currentField.coordinateY;
         ArrayList<Field> moves = new ArrayList<>();
+        String myColor = this.getColor();
 
         int[] dx = {-1, -1, -1, 0, 0, 1, 1, 1};
         int[] dy = {-1, 0, 1, -1, 1, -1, 0, 1};
@@ -31,7 +32,10 @@ public class Soldier3 extends Figure {
             int nextY = y + dy[i];
 
             if (nextX >= 0 && nextX < board.getX() && nextY >= 0 && nextY < board.getY()) {
-                moves.add(board.fields[nextX][nextY]);
+                Field targetField = board.fields[nextX][nextY];
+                if (targetField.whosHere == null || !targetField.whosHere.getColor().equals(myColor)) {
+                    moves.add(targetField);
+                }
             }
         }
         this.setPossibleMoves(moves);

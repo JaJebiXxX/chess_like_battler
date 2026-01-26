@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class Pawn3 extends Figure {
 
     public Pawn3() {
-        super(20, 3, 6);
+        super(1, 3, 6);
     }
 
     @Override
@@ -22,6 +22,7 @@ public class Pawn3 extends Figure {
         int x = currentField.coordinateX;
         int y = currentField.coordinateY;
         ArrayList<Field> moves = new ArrayList<>();
+        String myColor = this.getColor();
 
         int[] dx = {-3, -2, -2, -1, -1, 0, 0, 0, 0, 1, 1, 2, 2, 3};
         int[] dy = {0, 0, -2, 0, -1, 2, 1, -1, -2, 0, -1, 0, -2, 0};
@@ -34,7 +35,10 @@ public class Pawn3 extends Figure {
             int nextY = y + currentDy;
 
             if (nextX >= 0 && nextX < board.getX() && nextY >= 0 && nextY < board.getY()) {
-                moves.add(board.fields[nextX][nextY]);
+                Field targetField = board.fields[nextX][nextY];
+                if (targetField.whosHere == null || !targetField.whosHere.getColor().equals(myColor)) {
+                    moves.add(targetField);
+                }
             }
         }
         this.setPossibleMoves(moves);

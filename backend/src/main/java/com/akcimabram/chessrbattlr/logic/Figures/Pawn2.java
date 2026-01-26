@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class Pawn2 extends Figure {
 
     public Pawn2() {
-        super(10, 1, 2);
+        super(5, 1, 2);
     }
 
     @Override
@@ -22,6 +22,7 @@ public class Pawn2 extends Figure {
         int x = currentField.coordinateX;
         int y = currentField.coordinateY;
         ArrayList<Field> moves = new ArrayList<>();
+        String myColor = this.getColor();
 
         int[] dx = {-1, 0, 1};
         int[] dy = {1, 1, 1};
@@ -31,7 +32,11 @@ public class Pawn2 extends Figure {
             int nextY = y + dy[i];
 
             if (nextX >= 0 && nextX < board.getX() && nextY >= 0 && nextY < board.getY()) {
-                moves.add(board.fields[nextX][nextY]);
+                Field targetField = board.fields[nextX][nextY];
+                if (targetField.whosHere == null || !targetField.whosHere.getColor().equals(myColor)) {
+                    // Can move if the square is empty or has an enemy
+                    moves.add(targetField);
+                }
             }
         }
         this.setPossibleMoves(moves);
