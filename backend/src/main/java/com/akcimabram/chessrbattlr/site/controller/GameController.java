@@ -1,10 +1,13 @@
 package com.akcimabram.chessrbattlr.site.controller;
 
 import com.akcimabram.chessrbattlr.logic.Board;
+import com.akcimabram.chessrbattlr.logic.Figure;
 import com.akcimabram.chessrbattlr.logic.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -16,6 +19,11 @@ public class GameController {
     @Autowired
     public GameController(GameService gameService) {
         this.gameService = gameService;
+    }
+
+    @GetMapping("/figures")
+    public ResponseEntity<List<Figure>> getAvailableFigures() {
+        return ResponseEntity.ok(gameService.getAvailableFigures());
     }
 
     @GetMapping("/board")

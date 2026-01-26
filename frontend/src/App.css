@@ -229,6 +229,11 @@
   height: 20px;
 }
 
+.board-field.valid-drop {
+  box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.5);
+  cursor: copy;
+}
+
 /* Player Info / Mana Bar Styles */
 .player-info {
   width: 100%;
@@ -257,8 +262,15 @@
   margin-right: 20px;
 }
 
-.mana-container {
+.player-stats-container {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mana-container {
+  flex: 0 0 300px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;

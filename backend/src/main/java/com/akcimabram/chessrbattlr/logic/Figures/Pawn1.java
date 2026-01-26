@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class Pawn1 extends Figure {
 
     public Pawn1() {
-        super(100, 100, 100);
+        super(25, 3, 5);
     }
 
     @Override
@@ -23,10 +23,10 @@ public class Pawn1 extends Figure {
         int y = currentField.coordinateY;
         ArrayList<Field> moves = new ArrayList<>();
 
-        int[] dx = {-2, -2, -2, 0, 0, 2, 2, 2, -1, -1, -1, 0, 0, 1, 1, 1};
-        int[] dy = {-2, 0, 2, -2, 2, -2, 0, 2, -1, 0, 1, -1, 1, -1, 0, 1};
+        int[] dx = {-2, 0, 2, -1, -1, -1, 0, 0, 1, 1, 1, 0};
+        int[] dy = {0, -2, 0, -1, 0, 1, -1, 1, -1, 0, 1, 2};
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < dx.length; i++) {
             int nextX = x + dx[i];
             int nextY = y + dy[i];
 

@@ -66,6 +66,8 @@ interface PlayerState {
   name: string;
   mana: number;
   maxMana: number;
+  hp: number;
+  maxHp: number;
 }
 
 const FIGURE_ICONS: Record<FigureColor, Record<FigureType, string>> = {
@@ -87,48 +89,65 @@ const FIGURE_ICONS: Record<FigureColor, Record<FigureType, string>> = {
   }
 };
 
-const AVAILABLE_UNITS: UnitDefinition[] = [
-  // WHITE UNITS
-  { id: 'w-pawn', name: 'Pawn', type: 'CIRCLE', color: 'WHITE', cost: 1, health: 10, damage: 2 },
-  { id: 'w-knight', name: 'Knight', type: 'TRIANGLE', color: 'WHITE', cost: 3, health: 25, damage: 5 },
-  { id: 'w-bishop', name: 'Bishop', type: 'HEXAGON', color: 'WHITE', cost: 3, health: 20, damage: 6 },
-  { id: 'w-rook', name: 'Rook', type: 'SQUARE', color: 'WHITE', cost: 5, health: 40, damage: 4 },
-  { id: 'w-queen', name: 'Queen', type: 'STAR', color: 'WHITE', cost: 9, health: 35, damage: 10 },
-  { id: 'w-king', name: 'King', type: 'PLUS', color: 'WHITE', cost: 0, health: 50, damage: 1 },
-
-  // BLACK UNITS
-  { id: 'b-pawn', name: 'Pawn', type: 'CIRCLE', color: 'BLACK', cost: 1, health: 10, damage: 2 },
-  { id: 'b-knight', name: 'Knight', type: 'TRIANGLE', color: 'BLACK', cost: 3, health: 25, damage: 5 },
-  { id: 'b-bishop', name: 'Bishop', type: 'HEXAGON', color: 'BLACK', cost: 3, health: 20, damage: 6 },
-  { id: 'b-rook', name: 'Rook', type: 'SQUARE', color: 'BLACK', cost: 5, health: 40, damage: 4 },
-  { id: 'b-queen', name: 'Queen', type: 'STAR', color: 'BLACK', cost: 9, health: 35, damage: 10 },
-  { id: 'b-king', name: 'King', type: 'PLUS', color: 'BLACK', cost: 0, health: 50, damage: 1 },
-];
+const FIGURE_NAMES: Record<FigureType, string> = {
+  CIRCLE: 'Pawn',
+  TRIANGLE: 'Knight',
+  HEXAGON: 'Bishop',
+  SQUARE: 'Rook',
+  STAR: 'Queen',
+  PLUS: 'King'
+};
 
 function App() {
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState<Field | null>(null);
+  const [availableUnits, setAvailableUnits] = useState<UnitDefinition[]>([]);
   
   // Mock player state
-  const [player1] = useState<PlayerState>({ name: 'Player 1', mana: 3, maxMana: 10 });
-  const [player2] = useState<PlayerState>({ name: 'Player 2', mana: 3, maxMana: 10 });
+  const [player1] = useState<PlayerState>({ name: 'Player 1', mana: 3, maxMana: 10, hp: 10, maxHp: 10 });
+  const [player2] = useState<PlayerState>({ name: 'Player 2', mana: 3, maxMana: 10, hp: 10, maxHp: 10 });
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/game/board')
+    // Fetch board
+    const fetchBoard = fetch('http://localhost:8080/api/game/board')
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
-      })
-      .then((data: Board) => {
-        setBoard(data);
+      });
+
+    // Fetch figures
+    const fetchFigures = fetch('http://localhost:8080/api/game/figures')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      });
+
+    Promise.all([fetchBoard, fetchFigures])
+      .then(([boardData, figuresData]: [Board, Figure[]]) => {
+        setBoard(boardData);
+        
+        // Map backend figures to frontend UnitDefinition
+        const units: UnitDefinition[] = figuresData.map((f, index) => ({
+          id: `${f.color.toLowerCase()}-${f.type.toLowerCase()}-${index}`,
+          name: FIGURE_NAMES[f.type] || f.type,
+          type: f.type,
+          color: f.color,
+          cost: f.cost,
+          health: f.health,
+          damage: f.damage
+        }));
+        setAvailableUnits(units);
+        
         setLoading(false);
       })
       .catch(err => {
-        console.error("Failed to fetch board:", err);
+        console.error("Failed to fetch data:", err);
         setError(err.message);
         setLoading(false);
       });
@@ -167,9 +186,25 @@ function App() {
     return selectedField?.possibleMoves?.some(m => m.x === x && m.y === y);
   };
 
+  const isPlacementValid = (unit: UnitDefinition, y: number) => {
+    if (unit.color === 'WHITE') {
+      return y >= 7 && y <= 9;
+    } else if (unit.color === 'BLACK') {
+      return y >= 0 && y <= 2;
+    }
+    return false;
+  };
+
+  const [draggedUnit, setDraggedUnit] = useState<UnitDefinition | null>(null);
+
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, unit: UnitDefinition) => {
+    setDraggedUnit(unit);
     event.dataTransfer.setData('unit', JSON.stringify(unit));
     event.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedUnit(null);
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
@@ -179,10 +214,24 @@ function App() {
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetX: number, targetY: number) => {
     event.preventDefault();
+    setDraggedUnit(null);
     const unitData = event.dataTransfer.getData('unit');
     
     if (unitData && board) {
       const unit: UnitDefinition = JSON.parse(unitData);
+      
+      // Validation of placement zones
+      if (unit.color === 'WHITE') {
+        if (targetY < 7 || targetY > 9) {
+          alert("Białe figury można ustawiać tylko na polach y7-y9");
+          return;
+        }
+      } else if (unit.color === 'BLACK') {
+        if (targetY < 0 || targetY > 2) {
+          alert("Czarne figury można ustawiać tylko na polach y0-y2");
+          return;
+        }
+      }
       
       fetch(`http://localhost:8080/api/game/place/${unit.type}/${unit.color}/${targetX}/${targetY}`, {
         method: 'POST'
@@ -198,17 +247,22 @@ function App() {
   const renderPlayerInfo = (player: PlayerState, isTop: boolean) => (
     <div className={`player-info ${isTop ? 'player-top' : 'player-bottom'}`}>
       <div className="player-name">{player.name}</div>
-      <div className="mana-container">
-        <div className="mana-label">Mana: {player.mana} / {player.maxMana}</div>
-        <div className="mana-bar-bg">
-          <div 
-            className="mana-bar-fill" 
-            style={{ width: `${(player.mana / player.maxMana) * 100}%` }}
-          ></div>
-          <div className="mana-pips">
-            {Array.from({ length: player.maxMana - 1 }).map((_, i) => (
-              <div key={i} className="mana-pip" style={{ left: `${((i + 1) / player.maxMana) * 100}%` }}></div>
-            ))}
+      <div className="player-stats-container">
+        <div className="hp-label" style={{ color: '#ff5555', fontWeight: 'bold', marginRight: '15px' }}>
+          HP: {player.hp} / {player.maxHp}
+        </div>
+        <div className="mana-container">
+          <div className="mana-label">Mana: {player.mana} / {player.maxMana}</div>
+          <div className="mana-bar-bg">
+            <div 
+              className="mana-bar-fill" 
+              style={{ width: `${(player.mana / player.maxMana) * 100}%` }}
+            ></div>
+            <div className="mana-pips">
+              {Array.from({ length: player.maxMana - 1 }).map((_, i) => (
+                <div key={i} className="mana-pip" style={{ left: `${((i + 1) / player.maxMana) * 100}%` }}></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -220,12 +274,13 @@ function App() {
       <div className={`unit-panel ${color.toLowerCase()}-panel`}>
         <h2>{color} Units</h2>
         <div className="unit-list">
-          {AVAILABLE_UNITS.filter(u => u.color === color).map(unit => (
+          {availableUnits.filter(u => u.color === color).map(unit => (
             <div 
               key={unit.id} 
               className="unit-card"
               draggable
               onDragStart={(e) => handleDragStart(e, unit)}
+              onDragEnd={handleDragEnd}
             >
               <div className="unit-icon">
                 <img src={FIGURE_ICONS[unit.color][unit.type]} alt={unit.name} />
@@ -271,6 +326,7 @@ function App() {
                       ${field.fieldType.toLowerCase().replace('_', '-')}
                       ${selectedField === field ? 'selected' : ''}
                       ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
+                      ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''}
                     `}
                     title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
                     onDragOver={handleDragOver}
