@@ -26,9 +26,12 @@ public class Pawn3 extends Figure {
         int[] dx = {-3, -2, -2, -1, -1, 0, 0, 0, 0, 1, 1, 2, 2, 3};
         int[] dy = {0, 0, -2, 0, -1, 2, 1, -1, -2, 0, -1, 0, -2, 0};
 
+        boolean isBlack = "BLACK".equals(this.getColor());
+
         for (int i = 0; i < dx.length; i++) {
+            int currentDy = isBlack ? -dy[i] : dy[i];
             int nextX = x + dx[i];
-            int nextY = y + dy[i];
+            int nextY = y + currentDy;
 
             if (nextX >= 0 && nextX < board.getX() && nextY >= 0 && nextY < board.getY()) {
                 moves.add(board.fields[nextX][nextY]);
