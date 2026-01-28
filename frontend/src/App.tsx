@@ -28,6 +28,7 @@ enum FieldType {
 
 
 interface Figure {
+    id: string;
     type: FigureType;
     color: FigureColor;
     health: number;
@@ -62,6 +63,7 @@ interface Board {
 }
 
 interface PlayerState {
+    id: string;
     name: string;
     mana: number;
     maxMana: number;
@@ -73,6 +75,8 @@ interface GameState {
     board: Board;
     player1: PlayerState;
     player2: PlayerState;
+    currentPlayerId: string;
+    movedFigureIds: string[];
 }
 
 const FIGURE_ICONS: Record<FigureColor, Record<FigureType, string>> = {
@@ -166,239 +170,1300 @@ function App() {
         }
     }, [gameState]);
 
-    const handleFieldClick = (field: Field) => {
-        if (winner) return; // Don't allow moves if the game is over
-        if (selectedField && selectedField.whosHere) {
-            const canMove = selectedField.possibleMoves?.some(
-                m => m.x === field.coordinateX && m.y === field.coordinateY
+        const handleFieldClick = (field: Field) => {
+
+            if (winner) return;
+
+    
+
+            const currentTurnColor = gameState?.player1.id === gameState?.currentPlayerId ? 'WHITE' : 'BLACK';
+
+    
+
+            if (selectedField && selectedField.whosHere) {
+
+                const canMove = selectedField.possibleMoves?.some(
+
+                    m => m.x === field.coordinateX && m.y === field.coordinateY
+
+                );
+
+    
+
+                if (canMove) {
+
+                    fetch(`http://localhost:8080/api/game/move/${selectedField.coordinateX}/${selectedField.coordinateY}/${field.coordinateX}/${field.coordinateY}`, {
+
+                        method: 'POST'
+
+                    })
+
+                        .then(res => {
+
+                            if (!res.ok) return res.text().then(text => { throw new Error(text) });
+
+                            return res.json();
+
+                        })
+
+                        .then((data: GameState) => {
+
+                            setGameState(data);
+
+                            setSelectedField(null);
+
+                        })
+
+                        .catch(err => toast.error(err.message));
+
+                    return;
+
+                }
+
+            }
+
+    
+
+            if (field.whosHere) {
+
+                if (field.whosHere.color !== currentTurnColor) {
+
+                    toast.error("It's not your turn!");
+
+                    return;
+
+                }
+
+                if (gameState?.movedFigureIds.includes(field.whosHere.id)) {
+
+                    toast.error("This unit has already moved.");
+
+                    return;
+
+                }
+
+                setSelectedField(field);
+
+            } else {
+
+                setSelectedField(null);
+
+            }
+
+        };
+
+    
+
+        const isHighlighted = (x: number, y: number) => {
+
+            if (winner) return false;
+
+            return selectedField?.possibleMoves?.some(m => m.x === x && m.y === y);
+
+        };
+
+    
+
+        const isPlacementValid = (unit: UnitDefinition, y: number) => {
+
+            if (winner) return false;
+
+            if (unit.color === 'WHITE') {
+
+                return y >= 7 && y <= 9;
+
+            } else if (unit.color === 'BLACK') {
+
+                return y >= 0 && y <= 2;
+
+            }
+
+            return false;
+
+        };
+
+    
+
+        const [draggedUnit, setDraggedUnit] = useState<UnitDefinition | null>(null);
+
+    
+
+        const handleDragStart = (event: React.DragEvent<HTMLDivElement>, unit: UnitDefinition) => {
+
+            if (winner) {
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+            const currentTurnColor = gameState?.player1.id === gameState?.currentPlayerId ? 'WHITE' : 'BLACK';
+
+            if (unit.color !== currentTurnColor) {
+
+                toast.error("It's not your turn to place units!");
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+            setDraggedUnit(unit);
+
+            event.dataTransfer.setData('unit', JSON.stringify(unit));
+
+            event.dataTransfer.effectAllowed = 'copy';
+
+        };
+
+    
+
+        const handleDragEnd = () => {
+
+            setDraggedUnit(null);
+
+        };
+
+    
+
+        const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+
+            if (winner) return;
+
+            event.preventDefault();
+
+            event.dataTransfer.dropEffect = 'copy';
+
+        };
+
+    
+
+            const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetX: number, targetY: number) => {
+
+    
+
+                if (winner) return;
+
+    
+
+                event.preventDefault();
+
+    
+
+                setDraggedUnit(null);
+
+    
+
+                const unitData = event.dataTransfer.getData('unit');
+
+    
+
+        
+
+    
+
+                if (unitData && gameState) {
+
+    
+
+                    const unit: UnitDefinition = JSON.parse(unitData);
+
+    
+
+        
+
+    
+
+                    fetch(`http://localhost:8080/api/game/place/${unit.type}/${unit.color}/${targetX}/${targetY}`, {
+
+    
+
+                        method: 'POST'
+
+    
+
+                    })
+
+    
+
+                        .then(res => {
+
+    
+
+                            if (!res.ok) {
+
+    
+
+                                return res.text().then(text => { throw new Error(text) });
+
+    
+
+                            }
+
+    
+
+                            return res.json();
+
+    
+
+                        })
+
+    
+
+                        .then((data: GameState) => {
+
+    
+
+                            setGameState(data);
+
+    
+
+                        })
+
+    
+
+                        .catch(err => {
+
+    
+
+                            toast.error(err.message);
+
+    
+
+                        });
+
+    
+
+                }
+
+    
+
+            };
+
+    
+
+        
+
+    
+
+            const handleEndTurn = () => {
+
+    
+
+                fetch('http://localhost:8080/api/game/end-turn', { method: 'POST' })
+
+    
+
+                    .then(res => res.json())
+
+    
+
+                    .then((data: GameState) => {
+
+    
+
+                        setGameState(data);
+
+    
+
+                        setSelectedField(null);
+
+    
+
+                    })
+
+    
+
+                    .catch(err => toast.error(err.message));
+
+    
+
+            };
+
+    
+
+        
+
+    
+
+            const renderPlayerInfo = (player: PlayerState, isTop: boolean) => (
+
+    
+
+                <div className={`player-info ${isTop ? 'player-top' : 'player-bottom'}`}>
+
+    
+
+                    <div className="player-name">{player.name}</div>
+
+    
+
+                    <div className="player-stats-container">
+
+    
+
+                        <div className="hp-label" style={{ color: '#ff5555', fontWeight: 'bold', marginRight: '15px' }}>
+
+    
+
+                            HP: {player.hp} / {player.maxHp}
+
+    
+
+                        </div>
+
+    
+
+                        <div className="mana-container">
+
+    
+
+                            <div className="mana-label">Mana: {player.mana} / {player.maxMana}</div>
+
+    
+
+                            <div className="mana-bar-bg">
+
+    
+
+                                <div
+
+    
+
+                                    className="mana-bar-fill"
+
+    
+
+                                    style={{ width: `${(player.mana / player.maxMana) * 100}%` }}
+
+    
+
+                                ></div>
+
+    
+
+                                <div className="mana-pips">
+
+    
+
+                                    {Array.from({ length: player.maxMana - 1 }).map((_, i) => (
+
+    
+
+                                        <div key={i} className="mana-pip" style={{ left: `${((i + 1) / player.maxMana) * 100}%` }}></div>
+
+    
+
+                                    ))}
+
+    
+
+                                </div>
+
+    
+
+                            </div>
+
+    
+
+                        </div>
+
+    
+
+                    </div>
+
+    
+
+                </div>
+
+    
+
             );
 
-            if (canMove) {
-                fetch(`http://localhost:8080/api/game/move/${selectedField.coordinateX}/${selectedField.coordinateY}/${field.coordinateX}/${field.coordinateY}`, {
-                    method: 'POST'
-                })
-                    .then(res => {
-                        if (!res.ok) {
-                            return res.text().then(text => { throw new Error(text) });
-                        }
-                        return res.json();
-                    })
-                    .then((data: GameState) => {
-                        setGameState(data);
-                        setSelectedField(null);
-                    })
-                    .catch(err => {
-                        toast.error(err.message);
-                    });
-                return;
-            }
-        }
+    
 
-        if (field.whosHere) {
-            setSelectedField(field);
-        } else {
-            setSelectedField(null);
-        }
-    };
+        
 
-    const isHighlighted = (x: number, y: number) => {
-        if (winner) return false;
-        return selectedField?.possibleMoves?.some(m => m.x === x && m.y === y);
-    };
+    
 
-    const isPlacementValid = (unit: UnitDefinition, y: number) => {
-        if (winner) return false;
-        if (unit.color === 'WHITE') {
-            return y >= 7 && y <= 9;
-        } else if (unit.color === 'BLACK') {
-            return y >= 0 && y <= 2;
-        }
-        return false;
-    };
+            const renderUnitList = (color: FigureColor) => {
 
-    const [draggedUnit, setDraggedUnit] = useState<UnitDefinition | null>(null);
+    
 
-    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, unit: UnitDefinition) => {
-        if (winner) {
-            event.preventDefault();
-            return;
-        }
-        setDraggedUnit(unit);
-        event.dataTransfer.setData('unit', JSON.stringify(unit));
-        event.dataTransfer.effectAllowed = 'copy';
-    };
+                return (
 
-    const handleDragEnd = () => {
-        setDraggedUnit(null);
-    };
+    
 
-    const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-        if (winner) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'copy';
-    };
+                    <div className={`unit-panel ${color.toLowerCase()}-panel`}>
 
-    const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetX: number, targetY: number) => {
-        if (winner) return;
-        event.preventDefault();
-        setDraggedUnit(null);
-        const unitData = event.dataTransfer.getData('unit');
+    
 
-        if (unitData && gameState) {
-            const unit: UnitDefinition = JSON.parse(unitData);
+                        <h2>{color} Units</h2>
 
-            fetch(`http://localhost:8080/api/game/place/${unit.type}/${unit.color}/${targetX}/${targetY}`, {
-                method: 'POST'
-            })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.text().then(text => { throw new Error(text) });
-                    }
-                    return res.json();
-                })
-                .then((data: GameState) => {
-                    setGameState(data);
-                })
-                .catch(err => {
-                    toast.error(err.message);
-                });
-        }
-    };
+    
 
-    const renderPlayerInfo = (player: PlayerState, isTop: boolean) => (
-        <div className={`player-info ${isTop ? 'player-top' : 'player-bottom'}`}>
-            <div className="player-name">{player.name}</div>
-            <div className="player-stats-container">
-                <div className="hp-label" style={{ color: '#ff5555', fontWeight: 'bold', marginRight: '15px' }}>
-                    HP: {player.hp} / {player.maxHp}
-                </div>
-                <div className="mana-container">
-                    <div className="mana-label">Mana: {player.mana} / {player.maxMana}</div>
-                    <div className="mana-bar-bg">
-                        <div
-                            className="mana-bar-fill"
-                            style={{ width: `${(player.mana / player.maxMana) * 100}%` }}
-                        ></div>
-                        <div className="mana-pips">
-                            {Array.from({ length: player.maxMana - 1 }).map((_, i) => (
-                                <div key={i} className="mana-pip" style={{ left: `${((i + 1) / player.maxMana) * 100}%` }}></div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+                        <div className="unit-list">
 
-    const renderUnitList = (color: FigureColor) => {
-        return (
-            <div className={`unit-panel ${color.toLowerCase()}-panel`}>
-                <h2>{color} Units</h2>
-                <div className="unit-list">
-                    {availableUnits.filter(u => u.color === color).map(unit => (
-                        <div
-                            key={unit.id}
-                            className="unit-card"
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, unit)}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <div className="unit-icon">
-                                <img src={FIGURE_ICONS[unit.color][unit.type]} alt={unit.name} />
-                            </div>
-                            <div className="unit-details">
-                                <h3>{unit.name}</h3>
-                                <div className="unit-stats">
-                                    <span title="Mana Cost">💧 {unit.cost}</span>
-                                    <span title="Health">❤️ {unit.health}</span>
-                                    <span title="Damage">⚔️ {unit.damage}</span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    };
+    
 
-    const GameOverOverlay = ({ winner, onRestart }: { winner: string, onRestart: () => void }) => (
-        <div className="game-over-overlay">
-            <div className="game-over-content">
-                <h2>Game Over</h2>
-                <p>{winner} wins!</p>
-                <button onClick={onRestart}>Play Again</button>
-            </div>
-        </div>
-    );
+                            {availableUnits.filter(u => u.color === color).map(unit => (
 
-    if (loading) return <div>Loading game...</div>;
-    if (error) return <div>Error: {error}</div>;
-    if (!gameState) return <div>No game data</div>;
+    
 
-    return (
-        <div className="app-container">
-            {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()} />}
-            <Toaster
-                toastOptions={{
-                    style: {
-                        background: '#333',
-                        color: '#fff',
-                    },
-                }}
-            />
-            {renderUnitList('WHITE')}
+                                <div
 
-            <div className="game-area">
-                <h1>ChessR Battler</h1>
+    
 
-                {renderPlayerInfo(gameState.player2, true)}
+                                    key={unit.id}
 
-                <div className="board-container">
-                    <div className="board">
-                        {gameState.board.fields.map((column, colIndex) => (
-                            <div key={`col-${colIndex}`} className="board-column">
-                                {column.map((field, rowIndex) => (
-                                    <div
-                                        key={`field-${field.coordinateX}-${field.coordinateY}`}
-                                        className={`board-field 
-                                            ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} 
-                                            ${field.fieldType.toLowerCase().replace('_', '-')}
-                                            ${selectedField === field ? 'selected' : ''}
-                                            ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
-                                            ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''}
-                                        `}
-                                        title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
-                                        onClick={() => handleFieldClick(field)}
-                                    >
-                                        {field.fieldType !== FieldType.NORMAL && field.value}
-                                        {field.whosHere && (
-                                            <>
-                                                <img
-                                                    src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
-                                                    alt={`${field.whosHere.color} ${field.whosHere.type}`}
-                                                    style={{ width: '80%', height: '80%' }}
-                                                />
-                                                <div className="figure-health">{field.whosHere.health}</div>
-                                                <div className="figure-damage">{field.whosHere.damage}</div>
-                                            </>
-                                        )}
+    
+
+                                    className="unit-card"
+
+    
+
+                                    draggable
+
+    
+
+                                    onDragStart={(e) => handleDragStart(e, unit)}
+
+    
+
+                                    onDragEnd={handleDragEnd}
+
+    
+
+                                >
+
+    
+
+                                    <div className="unit-icon">
+
+    
+
+                                        <img src={FIGURE_ICONS[unit.color][unit.type]} alt={unit.name} />
+
+    
+
                                     </div>
-                                ))}
-                            </div>
-                        ))}
+
+    
+
+                                    <div className="unit-details">
+
+    
+
+                                        <h3>{unit.name}</h3>
+
+    
+
+                                        <div className="unit-stats">
+
+    
+
+                                            <span title="Mana Cost">💧 {unit.cost}</span>
+
+    
+
+                                            <span title="Health">❤️ {unit.health}</span>
+
+    
+
+                                            <span title="Damage">⚔️ {unit.damage}</span>
+
+    
+
+                                        </div>
+
+    
+
+                                    </div>
+
+    
+
+                                </div>
+
+    
+
+                            ))}
+
+    
+
+                        </div>
+
+    
+
                     </div>
+
+    
+
+                );
+
+    
+
+            };
+
+    
+
+        
+
+    
+
+            const GameOverOverlay = ({ winner, onRestart }: { winner: string, onRestart: () => void }) => (
+
+    
+
+                <div className="game-over-overlay">
+
+    
+
+                    <div className="game-over-content">
+
+    
+
+                        <h2>Game Over</h2>
+
+    
+
+                        <p>{winner} wins!</p>
+
+    
+
+                        <button onClick={onRestart}>Play Again</button>
+
+    
+
+                    </div>
+
+    
+
                 </div>
 
-                {renderPlayerInfo(gameState.player1, false)}
+    
 
-            </div>
+            );
 
-            {renderUnitList('BLACK')}
-        </div>
-    )
-}
+    
 
+        
 
-export default App
+    
+
+                if (loading) return <div>Loading game...</div>;
+
+    
+
+        
+
+    
+
+                if (error) return <div>Error: {error}</div>;
+
+    
+
+        
+
+    
+
+                if (!gameState) return <div>No game data</div>;
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                const isPlayer1Turn = gameState.currentPlayerId === gameState.player1.id;
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                return (
+
+    
+
+        
+
+    
+
+                    <div className="app-container">
+
+    
+
+        
+
+    
+
+                        {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()} />}
+
+    
+
+        
+
+    
+
+                        <Toaster
+
+    
+
+        
+
+    
+
+                            toastOptions={{
+
+    
+
+        
+
+    
+
+                                style: {
+
+    
+
+        
+
+    
+
+                                    background: '#333',
+
+    
+
+        
+
+    
+
+                                    color: '#fff',
+
+    
+
+        
+
+    
+
+                                },
+
+    
+
+        
+
+    
+
+                            }}
+
+    
+
+        
+
+    
+
+                        />
+
+    
+
+        
+
+    
+
+                        {renderUnitList('WHITE')}
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        <div className="game-area">
+
+    
+
+        
+
+    
+
+                            <div style={{color: "white"}}>
+
+    
+
+        
+
+    
+
+                                <h1>ChessR Battler</h1>
+
+    
+
+        
+
+    
+
+                                <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
+
+    
+
+        
+
+    
+
+                            </div>
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            {renderPlayerInfo(gameState.player2, true)}
+
+    
+
+        
+
+    
+
+                            {!isPlayer1Turn && (
+
+    
+
+        
+
+    
+
+                                <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+
+    
+
+        
+
+    
+
+                                    End Turn
+
+    
+
+        
+
+    
+
+                                </button>
+
+    
+
+        
+
+    
+
+                            )}
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            <div className="board-container">
+
+    
+
+        
+
+    
+
+                                <div className="board">
+
+    
+
+        
+
+    
+
+                                    {gameState.board.fields.map((column, colIndex) => (
+
+    
+
+        
+
+    
+
+                                        <div key={`col-${colIndex}`} className="board-column">
+
+    
+
+        
+
+    
+
+                                            {column.map((field, rowIndex) => {
+
+    
+
+        
+
+    
+
+                                                const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
+
+    
+
+        
+
+    
+
+                                                return (
+
+    
+
+        
+
+    
+
+                                                    <div
+
+    
+
+        
+
+    
+
+                                                        key={`field-${field.coordinateX}-${field.coordinateY}`}
+
+    
+
+        
+
+    
+
+                                                        className={`board-field 
+
+    
+
+        
+
+    
+
+                                                        ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} 
+
+    
+
+        
+
+    
+
+                                                        ${field.fieldType.toLowerCase().replace('_', '-')}
+
+    
+
+        
+
+    
+
+                                                        ${selectedField === field ? 'selected' : ''}
+
+    
+
+        
+
+    
+
+                                                        ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
+
+    
+
+        
+
+    
+
+                                                        ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''}
+
+    
+
+        
+
+    
+
+                                                        ${hasMoved ? 'has-moved' : ''}
+
+    
+
+        
+
+    
+
+                                                    `}
+
+    
+
+        
+
+    
+
+                                                        title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
+
+    
+
+        
+
+    
+
+                                                        onDragOver={handleDragOver}
+
+    
+
+        
+
+    
+
+                                                        onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
+
+    
+
+        
+
+    
+
+                                                        onClick={() => handleFieldClick(field)}
+
+    
+
+        
+
+    
+
+                                                    >
+
+    
+
+        
+
+    
+
+                                                        {field.fieldType !== FieldType.NORMAL && field.value}
+
+    
+
+        
+
+    
+
+                                                        {field.whosHere && (
+
+    
+
+        
+
+    
+
+                                                            <>
+
+    
+
+        
+
+    
+
+                                                                <img
+
+    
+
+        
+
+    
+
+                                                                    src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
+
+    
+
+        
+
+    
+
+                                                                    alt={`${field.whosHere.color} ${field.whosHere.type}`}
+
+    
+
+        
+
+    
+
+                                                                    style={{ width: '80%', height: '80%' }}
+
+    
+
+        
+
+    
+
+                                                                />
+
+    
+
+        
+
+    
+
+                                                                <div className="figure-health">{field.whosHere.health}</div>
+
+    
+
+        
+
+    
+
+                                                                <div className="figure-damage">{field.whosHere.damage}</div>
+
+    
+
+        
+
+    
+
+                                                            </>
+
+    
+
+        
+
+    
+
+                                                        )}
+
+    
+
+        
+
+    
+
+                                                    </div>
+
+    
+
+        
+
+    
+
+                                                )
+
+    
+
+        
+
+    
+
+                                            })}
+
+    
+
+        
+
+    
+
+                                        </div>
+
+    
+
+        
+
+    
+
+                                    ))}
+
+    
+
+        
+
+    
+
+                                </div>
+
+    
+
+        
+
+    
+
+                            </div>
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            {renderPlayerInfo(gameState.player1, false)}
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            {isPlayer1Turn && (
+
+    
+
+        
+
+    
+
+                                <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+
+    
+
+        
+
+    
+
+                                    End Turn
+
+    
+
+        
+
+    
+
+                                </button>
+
+    
+
+        
+
+    
+
+                            )}
+
+    
+
+        
+
+    
+
+                        </div>
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        {renderUnitList('BLACK')}
+
+    
+
+        
+
+    
+
+                    </div>
+
+    
+
+        
+
+    
+
+                )
+
+    
+
+        
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+            export default App
+
+    

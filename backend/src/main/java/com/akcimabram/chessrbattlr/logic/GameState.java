@@ -1,14 +1,35 @@
 package com.akcimabram.chessrbattlr.logic;
 
+import java.util.List;
+import java.util.UUID;
+
 public class GameState {
     private Board board;
     private Player player1;
     private Player player2;
+    private UUID currentPlayerId;
+    private List<UUID> movedFigureIds;
+    private int turn;
 
-    public GameState(Board board, Player player1, Player player2) {
+    public GameState(Board board, Player player1, Player player2, UUID currentPlayerId, List<UUID> movedFigureIds, int turn) {
         this.board = board;
         this.player1 = player1;
         this.player2 = player2;
+        this.currentPlayerId = currentPlayerId;
+        this.movedFigureIds = movedFigureIds;
+        this.turn = turn;
+    }
+
+    public int getTurn() {
+        return turn;
+    }
+
+    public List<UUID> getMovedFigureIds() {
+        return movedFigureIds;
+    }
+
+    public UUID getCurrentPlayerId() {
+        return currentPlayerId;
     }
 
     public Board getBoard() {

@@ -1,18 +1,26 @@
 package com.akcimabram.chessrbattlr.logic;
 
+import java.util.UUID;
+
 public class Player {
+    private final UUID id;
     private String name;
     private int mana;
     private int maxMana;
     private int hp;
     private int maxHp;
 
-    public Player(String name, int mana, int maxMana, int hp, int maxHp) {
+    public Player(UUID id, String name, int mana, int maxMana, int hp, int maxHp) {
+        this.id = id;
         this.name = name;
         this.mana = mana;
         this.maxMana = maxMana;
         this.hp = hp;
         this.maxHp = maxHp;
+    }
+
+    public UUID getId() {
+        return id;
     }
 
     public String getName() {

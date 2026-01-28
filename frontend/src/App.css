@@ -385,3 +385,47 @@
 .game-over-content button:hover {
   background-color: #45a049;
 }
+
+.end-turn-button {
+  padding: 10px 20px;
+  margin-top: 20px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.end-turn-button:hover {
+  background-color: #0056b3;
+}
+
+.end-turn-button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.board-field.has-moved {
+  position: relative;
+}
+
+.board-field.has-moved::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
+  z-index: 2; /* Ensure it's above the figure but below other indicators */
+}
+
+/* Make the figure itself slightly faded to enhance the effect */
+.board-field.has-moved img,
+.board-field.has-moved .figure-health,
+.board-field.has-moved .figure-damage {
+  opacity: 0.6;
+}

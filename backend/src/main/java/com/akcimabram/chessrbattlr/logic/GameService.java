@@ -2,6 +2,7 @@ package com.akcimabram.chessrbattlr.logic;
 
 import com.akcimabram.chessrbattlr.logic.Figures.*;
 import com.akcimabram.chessrbattlr.logic.enums.FieldType;
+import com.akcimabram.chessrbattlr.logic.exceptions.GameException;
 import com.akcimabram.chessrbattlr.logic.exceptions.InvalidMoveException;
 import com.akcimabram.chessrbattlr.logic.exceptions.InvalidPlacementException;
 import org.springframework.stereotype.Service;
@@ -9,18 +10,21 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class GameService {
     private Board board;
     private Player player1;
     private Player player2;
+    private UUID currentPlayerId;
+    private List<UUID> movedFigureIds;
+    private int turn;
 
     public List<Figure> getAvailableFigures() {
         List<Figure> figures = new ArrayList<>();
         
         Figure f;
-        
         f = new Pawn2(); f.setType("CIRCLE"); f.setColor("WHITE"); figures.add(f);
         f = new Pawn1(); f.setType("TRIANGLE"); f.setColor("WHITE"); figures.add(f);
         f = new Pawn3(); f.setType("HEXAGON"); f.setColor("WHITE"); figures.add(f);
@@ -41,8 +45,11 @@ public class GameService {
     @PostConstruct
     public void init() {
         board = new Board(10, 10);
-        player1 = new Player("Player 1", 3, 10, 10, 10);
-        player2 = new Player("Player 2", 3, 10, 10, 10);
+        player1 = new Player(UUID.randomUUID(), "Player 1", 1, 10, 10, 10);
+        player2 = new Player(UUID.randomUUID(), "Player 2", 1, 10, 10, 10);
+        currentPlayerId = player1.getId();
+        movedFigureIds = new ArrayList<>();
+        turn = 1;
 
         for (int i = 0; i < board.getX(); i++) {
             for (int j = 0; j < board.getY(); j++) {
@@ -59,7 +66,7 @@ public class GameService {
     }
 
     public GameState getGameState() {
-        return new GameState(board, player1, player2);
+        return new GameState(board, player1, player2, currentPlayerId, movedFigureIds, turn);
     }
 
     private void recalculateAllPossibleMoves() {
@@ -82,6 +89,15 @@ public class GameService {
         }
 
         Figure attacker = fromField.whosHere;
+
+        // Turn validation
+        Player currentPlayer = getCurrentPlayer();
+        if (!isPlayerTurn(attacker.getColor(), currentPlayer)) {
+            throw new GameException("It's not your turn.");
+        }
+        if (movedFigureIds.contains(attacker.getId())) {
+            throw new InvalidMoveException("This figure has already moved this turn.");
+        }
 
         if (attacker.getPossibleMoves() == null || attacker.getPossibleMoves().stream().noneMatch(f -> f.coordinateX == toX && f.coordinateY == toY)) {
             throw new InvalidMoveException("The move is not possible for this figure.");
@@ -111,11 +127,13 @@ public class GameService {
                     fromField.whosHere = null;
                 }
             }
-        } else {
+        }
+        else {
             // Simple move
             toField.whosHere = attacker;
             fromField.whosHere = null;
         }
+        movedFigureIds.add(attacker.getId());
 
         // Check for base attack
         Figure finalFigureOnToField = toField.whosHere;
@@ -133,6 +151,12 @@ public class GameService {
     }
 
     public void placeFigure(String type, String color, int x, int y) {
+        // Turn validation
+        Player currentPlayer = getCurrentPlayer();
+        if (!isPlayerTurn(color, currentPlayer)) {
+            throw new GameException("It's not your turn.");
+        }
+
         if (x < 0 || x >= board.getX() || y < 0 || y >= board.getY()) {
             throw new InvalidPlacementException("Cannot place figure outside the board.");
         }
@@ -157,11 +181,46 @@ public class GameService {
             case "PLUS": figure = new Soldier3(); break;
             default: throw new InvalidPlacementException("Unknown figure type: " + type);
         }
+
+        if (currentPlayer.getMana() < figure.getCost()) {
+            throw new GameException("Not enough mana.");
+        }
+        currentPlayer.setMana(currentPlayer.getMana() - figure.getCost());
+
         figure.setType(type);
         figure.setColor(color);
         board.fields[x][y].whosHere = figure;
+        movedFigureIds.add(figure.getId());
         recalculateAllPossibleMoves();
     }
+
+    public void endTurn() {
+        if (currentPlayerId.equals(player1.getId())) {
+            currentPlayerId = player2.getId();
+            player2.setMana(Math.min(player2.getMaxMana(), turn));
+        } else {
+            currentPlayerId = player1.getId();
+            turn++;
+            player1.setMana(Math.min(player1.getMaxMana(), turn));
+        }
+        movedFigureIds.clear();
+    }
+
+    private Player getCurrentPlayer() {
+        if (currentPlayerId.equals(player1.getId())) {
+            return player1;
+        } else {
+            return player2;
+        }
+    }
+
+    private boolean isPlayerTurn(String color, Player currentPlayer) {
+        if (color.equals("WHITE") && currentPlayer.getId().equals(player1.getId())) {
+            return true;
+        }
+        return color.equals("BLACK") && currentPlayer.getId().equals(player2.getId());
+    }
+
 
     public Board getBoard() {
         return board;

@@ -23,9 +23,10 @@ public class Pawn2 extends Figure {
         int y = currentField.coordinateY;
         ArrayList<Field> moves = new ArrayList<>();
         String myColor = this.getColor();
+        int direction = "WHITE".equals(myColor) ? -1 : 1;
 
         int[] dx = {-1, 0, 1};
-        int[] dy = {1, 1, 1};
+        int[] dy = {direction, direction, direction};
 
         for (int i = 0; i < dx.length; i++) {
             int nextX = x + dx[i];

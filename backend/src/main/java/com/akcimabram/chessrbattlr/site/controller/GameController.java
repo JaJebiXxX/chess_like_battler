@@ -50,4 +50,10 @@ public class GameController {
         gameService.placeFigure(type, color, x, y);
         return ResponseEntity.ok(gameService.getGameState());
     }
+
+    @PostMapping("/end-turn")
+    public ResponseEntity<GameState> endTurn() {
+        gameService.endTurn();
+        return ResponseEntity.ok(gameService.getGameState());
+    }
 }

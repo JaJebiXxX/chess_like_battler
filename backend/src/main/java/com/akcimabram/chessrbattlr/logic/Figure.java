@@ -1,27 +1,33 @@
 package com.akcimabram.chessrbattlr.logic;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
+import java.util.UUID;
 
 public abstract class Figure {
 
+    private final UUID id;
     private int health;
 
     private int cost;
-
     private int damage;
 
     @JsonIgnore
     private List<Field> possibleMoves;
-
     private String type;
     private String color;
 
     public Figure(int health, int cost, int damage) {
+        this.id = UUID.randomUUID();
         this.health = health;
         this.cost = cost;
         this.damage = damage;
         this.type = "TRIANGLE";
         this.color = "WHITE";
+    }
+
+    public UUID getId() {
+        return id;
     }
 
     public abstract void move();
