@@ -752,7 +752,7 @@ function App() {
 
     
 
-                if (loading) return <div>Loading game...</div>;
+                    if (loading) return <div>Loading game...</div>;
 
     
 
@@ -760,7 +760,7 @@ function App() {
 
     
 
-                if (error) return <div>Error: {error}</div>;
+                    if (error) return <div>Error: {error}</div>;
 
     
 
@@ -768,7 +768,7 @@ function App() {
 
     
 
-                if (!gameState) return <div>No game data</div>;
+                    if (!gameState) return <div>No game data</div>;
 
     
 
@@ -776,7 +776,7 @@ function App() {
 
     
 
-            
+                
 
     
 
@@ -784,7 +784,7 @@ function App() {
 
     
 
-                const isPlayer1Turn = gameState.currentPlayerId === gameState.player1.id;
+                    const isPlayer1Turn = gameState.currentPlayerId === gameState.player1.id;
 
     
 
@@ -792,7 +792,7 @@ function App() {
 
     
 
-            
+                
 
     
 
@@ -800,7 +800,7 @@ function App() {
 
     
 
-                return (
+                    return (
 
     
 
@@ -808,7 +808,7 @@ function App() {
 
     
 
-                    <div className="app-container">
+                        <div className="app-container">
 
     
 
@@ -816,7 +816,7 @@ function App() {
 
     
 
-                        {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()} />}
+                            {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()} />}
 
     
 
@@ -824,7 +824,7 @@ function App() {
 
     
 
-                        <Toaster
+                            <Toaster
 
     
 
@@ -832,7 +832,7 @@ function App() {
 
     
 
-                            toastOptions={{
+                                toastOptions={{
 
     
 
@@ -840,7 +840,7 @@ function App() {
 
     
 
-                                style: {
+                                    style: {
 
     
 
@@ -848,7 +848,7 @@ function App() {
 
     
 
-                                    background: '#333',
+                                        background: '#333',
 
     
 
@@ -856,7 +856,7 @@ function App() {
 
     
 
-                                    color: '#fff',
+                                        color: '#fff',
 
     
 
@@ -864,7 +864,7 @@ function App() {
 
     
 
-                                },
+                                    },
 
     
 
@@ -872,7 +872,7 @@ function App() {
 
     
 
-                            }}
+                                }}
 
     
 
@@ -880,7 +880,7 @@ function App() {
 
     
 
-                        />
+                            />
 
     
 
@@ -888,7 +888,7 @@ function App() {
 
     
 
-                        {renderUnitList('WHITE')}
+                            {renderUnitList('WHITE')}
 
     
 
@@ -896,7 +896,7 @@ function App() {
 
     
 
-            
+                
 
     
 
@@ -904,7 +904,7 @@ function App() {
 
     
 
-                        <div className="game-area">
+                            <div className="game-area">
 
     
 
@@ -912,7 +912,7 @@ function App() {
 
     
 
-                            <div style={{color: "white"}}>
+                                <div style={{color: "white"}}>
 
     
 
@@ -920,7 +920,7 @@ function App() {
 
     
 
-                                <h1>ChessR Battler</h1>
+                                    <h1>ChessR Battler</h1>
 
     
 
@@ -928,391 +928,7 @@ function App() {
 
     
 
-                                <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
-
-    
-
-        
-
-    
-
-                            </div>
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            {renderPlayerInfo(gameState.player2, true)}
-
-    
-
-        
-
-    
-
-                            {!isPlayer1Turn && (
-
-    
-
-        
-
-    
-
-                                <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
-
-    
-
-        
-
-    
-
-                                    End Turn
-
-    
-
-        
-
-    
-
-                                </button>
-
-    
-
-        
-
-    
-
-                            )}
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            <div className="board-container">
-
-    
-
-        
-
-    
-
-                                <div className="board">
-
-    
-
-        
-
-    
-
-                                    {gameState.board.fields.map((column, colIndex) => (
-
-    
-
-        
-
-    
-
-                                        <div key={`col-${colIndex}`} className="board-column">
-
-    
-
-        
-
-    
-
-                                            {column.map((field, rowIndex) => {
-
-    
-
-        
-
-    
-
-                                                const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
-
-    
-
-        
-
-    
-
-                                                return (
-
-    
-
-        
-
-    
-
-                                                    <div
-
-    
-
-        
-
-    
-
-                                                        key={`field-${field.coordinateX}-${field.coordinateY}`}
-
-    
-
-        
-
-    
-
-                                                        className={`board-field 
-
-    
-
-        
-
-    
-
-                                                        ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} 
-
-    
-
-        
-
-    
-
-                                                        ${field.fieldType.toLowerCase().replace('_', '-')}
-
-    
-
-        
-
-    
-
-                                                        ${selectedField === field ? 'selected' : ''}
-
-    
-
-        
-
-    
-
-                                                        ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
-
-    
-
-        
-
-    
-
-                                                        ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''}
-
-    
-
-        
-
-    
-
-                                                        ${hasMoved ? 'has-moved' : ''}
-
-    
-
-        
-
-    
-
-                                                    `}
-
-    
-
-        
-
-    
-
-                                                        title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
-
-    
-
-        
-
-    
-
-                                                        onDragOver={handleDragOver}
-
-    
-
-        
-
-    
-
-                                                        onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
-
-    
-
-        
-
-    
-
-                                                        onClick={() => handleFieldClick(field)}
-
-    
-
-        
-
-    
-
-                                                    >
-
-    
-
-        
-
-    
-
-                                                        {field.fieldType !== FieldType.NORMAL && field.value}
-
-    
-
-        
-
-    
-
-                                                        {field.whosHere && (
-
-    
-
-        
-
-    
-
-                                                            <>
-
-    
-
-        
-
-    
-
-                                                                <img
-
-    
-
-        
-
-    
-
-                                                                    src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
-
-    
-
-        
-
-    
-
-                                                                    alt={`${field.whosHere.color} ${field.whosHere.type}`}
-
-    
-
-        
-
-    
-
-                                                                    style={{ width: '80%', height: '80%' }}
-
-    
-
-        
-
-    
-
-                                                                />
-
-    
-
-        
-
-    
-
-                                                                <div className="figure-health">{field.whosHere.health}</div>
-
-    
-
-        
-
-    
-
-                                                                <div className="figure-damage">{field.whosHere.damage}</div>
-
-    
-
-        
-
-    
-
-                                                            </>
-
-    
-
-        
-
-    
-
-                                                        )}
-
-    
-
-        
-
-    
-
-                                                    </div>
-
-    
-
-        
-
-    
-
-                                                )
-
-    
-
-        
-
-    
-
-                                            })}
-
-    
-
-        
-
-    
-
-                                        </div>
-
-    
-
-        
-
-    
-
-                                    ))}
+                                    <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
 
     
 
@@ -1328,6 +944,478 @@ function App() {
 
     
 
+                
+
+    
+
+        
+
+    
+
+                                {/* End Turn button above Player 2 (enemy) if it's Player 1's turn */}
+
+    
+
+        
+
+    
+
+                                {isPlayer1Turn && (
+
+    
+
+        
+
+    
+
+                                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+
+    
+
+        
+
+    
+
+                                        End Turn
+
+    
+
+        
+
+    
+
+                                    </button>
+
+    
+
+        
+
+    
+
+                                )}
+
+    
+
+        
+
+    
+
+                                {renderPlayerInfo(gameState.player2, true)}
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                <div className="board-container">
+
+    
+
+        
+
+    
+
+                                    <div className="board">
+
+    
+
+        
+
+    
+
+                                        {gameState.board.fields.map((column, colIndex) => (
+
+    
+
+        
+
+    
+
+                                            <div key={`col-${colIndex}`} className="board-column">
+
+    
+
+        
+
+    
+
+                                                {column.map((field, rowIndex) => {
+
+    
+
+        
+
+    
+
+                                                    const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
+
+    
+
+        
+
+    
+
+                                                    return (
+
+    
+
+        
+
+    
+
+                                                        <div
+
+    
+
+        
+
+    
+
+                                                            key={`field-${field.coordinateX}-${field.coordinateY}`}
+
+    
+
+        
+
+    
+
+                                                            className={`board-field 
+
+    
+
+        
+
+    
+
+                                                            ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} 
+
+    
+
+        
+
+    
+
+                                                            ${field.fieldType.toLowerCase().replace('_', '-')}
+
+    
+
+        
+
+    
+
+                                                            ${selectedField === field ? 'selected' : ''}
+
+    
+
+        
+
+    
+
+                                                            ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
+
+    
+
+        
+
+    
+
+                                                            ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''}
+
+    
+
+        
+
+    
+
+                                                            ${hasMoved ? 'has-moved' : ''}
+
+    
+
+        
+
+    
+
+                                                        `}
+
+    
+
+        
+
+    
+
+                                                            title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
+
+    
+
+        
+
+    
+
+                                                            onDragOver={handleDragOver}
+
+    
+
+        
+
+    
+
+                                                            onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
+
+    
+
+        
+
+    
+
+                                                            onClick={() => handleFieldClick(field)}
+
+    
+
+        
+
+    
+
+                                                        >
+
+    
+
+        
+
+    
+
+                                                            {field.fieldType !== FieldType.NORMAL && field.value}
+
+    
+
+        
+
+    
+
+                                                            {field.whosHere && (
+
+    
+
+        
+
+    
+
+                                                                <>
+
+    
+
+        
+
+    
+
+                                                                    <img
+
+    
+
+        
+
+    
+
+                                                                        src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
+
+    
+
+        
+
+    
+
+                                                                        alt={`${field.whosHere.color} ${field.whosHere.type}`}
+
+    
+
+        
+
+    
+
+                                                                        style={{ width: '80%', height: '80%' }}
+
+    
+
+        
+
+    
+
+                                                                    />
+
+    
+
+        
+
+    
+
+                                                                    <div className="figure-health">{field.whosHere.health}</div>
+
+    
+
+        
+
+    
+
+                                                                    <div className="figure-damage">{field.whosHere.damage}</div>
+
+    
+
+        
+
+    
+
+                                                                </>
+
+    
+
+        
+
+    
+
+                                                            )}
+
+    
+
+        
+
+    
+
+                                                        </div>
+
+    
+
+        
+
+    
+
+                                                    )
+
+    
+
+        
+
+    
+
+                                                })}
+
+    
+
+        
+
+    
+
+                                            </div>
+
+    
+
+        
+
+    
+
+                                        ))}
+
+    
+
+        
+
+    
+
+                                    </div>
+
+    
+
+        
+
+    
+
+                                </div>
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                {renderPlayerInfo(gameState.player1, false)}
+
+    
+
+        
+
+    
+
+                                {/* End Turn button above Player 1 (enemy) if it's Player 2's turn */}
+
+    
+
+        
+
+    
+
+                                {!isPlayer1Turn && (
+
+    
+
+        
+
+    
+
+                                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+
+    
+
+        
+
+    
+
+                                        End Turn
+
+    
+
+        
+
+    
+
+                                    </button>
+
+    
+
+        
+
+    
+
+                                )}
+
+    
+
+        
+
+    
+
                             </div>
 
     
@@ -1336,7 +1424,7 @@ function App() {
 
     
 
-            
+                
 
     
 
@@ -1344,55 +1432,7 @@ function App() {
 
     
 
-                            {renderPlayerInfo(gameState.player1, false)}
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            {isPlayer1Turn && (
-
-    
-
-        
-
-    
-
-                                <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
-
-    
-
-        
-
-    
-
-                                    End Turn
-
-    
-
-        
-
-    
-
-                                </button>
-
-    
-
-        
-
-    
-
-                            )}
+                            {renderUnitList('BLACK')}
 
     
 
@@ -1408,7 +1448,7 @@ function App() {
 
     
 
-            
+                    )
 
     
 
@@ -1416,7 +1456,7 @@ function App() {
 
     
 
-                        {renderUnitList('BLACK')}
+                }
 
     
 
@@ -1424,7 +1464,7 @@ function App() {
 
     
 
-                    </div>
+                
 
     
 
@@ -1432,7 +1472,7 @@ function App() {
 
     
 
-                )
+                
 
     
 
@@ -1440,30 +1480,6 @@ function App() {
 
     
 
-            }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-            export default App
+                export default App
 
     
