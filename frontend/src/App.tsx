@@ -135,7 +135,7 @@ function App() {
     const [selectedField, setSelectedField] = useState<Field | null>(null);
     const [availableUnits, setAvailableUnits] = useState<UnitDefinition[]>([]);
     const [winner, setWinner] = useState<string | null>(null);
-    const [hoveredUnit, setHoveredUnit] = useState<UnitDefinition | null>(null);
+    const [hoveredUnitPreview, setHoveredUnitPreview] = useState<{unit: UnitDefinition, top: number, left: number, color: FigureColor} | null>(null);
 
     useEffect(() => {
         const fetchGameState = fetch('http://localhost:8080/api/game/state')
@@ -522,106 +522,39 @@ function App() {
 
 
     const renderUnitList = (color: FigureColor) => {
-
-
         return (
-
-
             <div className={`unit-panel ${color.toLowerCase()}-panel`}>
-
-
                 <h2>{color} Units</h2>
-
-
                 <div className="unit-list">
-
-
                     {availableUnits.filter(u => u.color === color).map(unit => (
-
-
                         <div
-
-
                             key={unit.id}
-
-
                             className="unit-card"
-
-
                             draggable
-
-
                             onDragStart={(e) => handleDragStart(e, unit)}
-
-
                             onDragEnd={handleDragEnd}
-
-                            onMouseEnter={() => setHoveredUnit(unit)}
-
-                            onMouseLeave={() => setHoveredUnit(null)}
-
-
+                            onMouseEnter={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setHoveredUnitPreview({ unit, top: rect.top, left: rect.right, color: unit.color });
+                            }}
+                            onMouseLeave={() => setHoveredUnitPreview(null)}
                         >
-
-
                             <div className="unit-icon">
-
-
                                 <img src={FIGURE_ICONS[unit.color][unit.type]} alt={unit.name}/>
-
-
                             </div>
-
-
                             <div className="unit-details">
-
-
                                 <h3>{unit.name}</h3>
-
-
                                 <div className="unit-stats">
-
-
                                     <span title="Mana Cost">💧 {unit.cost}</span>
-
-
                                     <span title="Health">❤️ {unit.health}</span>
-
-
                                     <span title="Damage">⚔️ {unit.damage}</span>
-
-
                                 </div>
-
-
                             </div>
-
-                            {hoveredUnit?.id === unit.id && (
-                                <div className={`figure-preview-container unit-preview ${color === 'BLACK' ? 'preview-left' : 'preview-right'}`}>
-                                    <img 
-                                        src={FIGURE_IMAGES[unit.type]} 
-                                        alt="preview" 
-                                        className="figure-preview-image"
-                                    />
-                                </div>
-                            )}
-
-
                         </div>
-
-
                     ))}
-
-
                 </div>
-
-
             </div>
-
-
         );
-
-
     };
 
 
@@ -659,271 +592,93 @@ function App() {
 
 
     if (!gameState) return <div>No game data</div>;
-
-
     const isPlayer1Turn = gameState.currentPlayerId === gameState.player1.id;
-
-
     return (
-
-
-        <div className="app-container">
-
-
-            {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()}/>}
-
-
-            <Toaster
-
-
-                toastOptions={{
-
-
-                    style: {
-
-
-                        background: '#333',
-
-
-                        color: '#fff',
-
-
-                    },
-
-
-                }}
-
-
-            />
-
-
-            {renderUnitList('WHITE')}
-
-
-            <div className="game-area">
-
-
-                <div style={{color: "white"}}>
-
-
-                    <h1>ChessR Battler</h1>
-
-
-                    <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
-
-
+        <>
+            {hoveredUnitPreview && (
+                <div
+                    className={`figure-preview-container unit-preview-portal ${hoveredUnitPreview.color === 'BLACK' ? 'preview-left' : 'preview-right'}`}
+                    style={{
+                        top: `${hoveredUnitPreview.top}px`,
+                        left: `${hoveredUnitPreview.left}px`,
+                    }}
+                >
+                    <img
+                        src={FIGURE_IMAGES[hoveredUnitPreview.unit.type]}
+                        alt="preview"
+                        className="figure-preview-image"
+                    />
                 </div>
-
-
-                {/* End Turn button for Player 2 */}
-
-
-                {!isPlayer1Turn && (
-
-
-                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
-
-
-                        End Turn
-
-
-                    </button>
-
-
-                )}
-
-
-                {renderPlayerInfo(gameState.player2, true)}
-
-
-                <div className="board-container">
-
-
-                    <div className="board">
-
-
-                        {gameState.board.fields.map((column, colIndex) => (
-
-
-                            <div key={`col-${colIndex}`} className="board-column">
-
-
-                                {column.map((field, rowIndex) => {
-
-
-                                    const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
-
-
-                                    return (
-
-
-                                        <div
-
-
-                                            key={`field-${field.coordinateX}-${field.coordinateY}`}
-
-
-                                            className={`board-field 
-
-    
-
-        
-
-    
-
-                                                            ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} 
-
-    
-
-        
-
-    
-
-                                                            ${field.fieldType.toLowerCase().replace('_', '-')}
-
-    
-
-        
-
-    
-
-                                                            ${selectedField === field ? 'selected' : ''}
-
-    
-
-        
-
-    
-
-                                                            ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''}
-
-    
-
-        
-
-    
-
-                                                            ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''}
-
-    
-
-        
-
-    
-
-                                                            ${hasMoved ? 'has-moved' : ''}
-
-    
-
-        
-
-    
-
-                                                        `}
-
-
-                                            title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
-
-
-                                            onDragOver={handleDragOver}
-
-
-                                            onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
-                                            onClick={() => handleFieldClick(field)}
-                                        >
-
-
-                                            {field.fieldType !== FieldType.NORMAL && field.value}
-
-
-                                            {field.whosHere && (
-
-
-                                                <>
-
-
-                                                    <img
-
-
-                                                        src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
-
-
-                                                        alt={`${field.whosHere.color} ${field.whosHere.type}`}
-
-
-                                                        style={{width: '80%', height: '80%'}}
-
-
-                                                    />
-
-
-                                                    <div className="figure-health">{field.whosHere.health}</div>
-
-
-                                                    <div className="figure-damage">{field.whosHere.damage}</div>
-                                                </>
-
-
-                                            )}
-
-
-                                        </div>
-
-
-                                    )
-
-
-                                })}
-
-
-                            </div>
-
-
-                        ))}
-
-
+            )}
+            <div className="app-container">
+                {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()}/>}
+                <Toaster
+                    toastOptions={{
+                        style: {
+                            background: '#333',
+                            color: '#fff',
+                        },
+                    }}
+                />
+                {renderUnitList('WHITE')}
+                <div className="game-area">
+                    <div style={{color: "white"}}>
+                        <h1>ChessR Battler</h1>
+                        <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
                     </div>
-
-
+                    {/* End Turn button for Player 2 */}
+                    {!isPlayer1Turn && (
+                        <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+                            End Turn
+                        </button>
+                    )}
+                    {renderPlayerInfo(gameState.player2, true)}
+                    <div className="board-container">
+                        <div className="board">
+                            {gameState.board.fields.map((column, colIndex) => (
+                                <div key={`col-${colIndex}`} className="board-column">
+                                    {column.map((field, rowIndex) => {
+                                        const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
+                                        return (
+                                            <div
+                                                key={`field-${field.coordinateX}-${field.coordinateY}`}
+                                                className={`board-field ${(colIndex + rowIndex) % 2 === 0 ? 'light' : 'dark'} ${field.fieldType.toLowerCase().replace('_', '-')} ${selectedField === field ? 'selected' : ''} ${isHighlighted(field.coordinateX, field.coordinateY) ? 'highlighted' : ''} ${draggedUnit && isPlacementValid(draggedUnit, field.coordinateY) ? 'valid-drop' : ''} ${hasMoved ? 'has-moved' : ''}`}
+                                                title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
+                                                onDragOver={handleDragOver}
+                                                onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
+                                                onClick={() => handleFieldClick(field)}
+                                            >
+                                                {field.fieldType !== FieldType.NORMAL && field.value}
+                                                {field.whosHere && (
+                                                    <>
+                                                        <img
+                                                            src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
+                                                            alt={`${field.whosHere.color} ${field.whosHere.type}`}
+                                                            style={{width: '80%', height: '80%'}}
+                                                        />
+                                                        <div className="figure-health">{field.whosHere.health}</div>
+                                                        <div className="figure-damage">{field.whosHere.damage}</div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {renderPlayerInfo(gameState.player1, false)}
+                    {/* End Turn button for Player 1 */}
+                    {isPlayer1Turn && (
+                        <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+                            End Turn
+                        </button>
+                    )}
                 </div>
-
-
-                {renderPlayerInfo(gameState.player1, false)}
-
-
-                {/* End Turn button for Player 1 */}
-
-
-                {isPlayer1Turn && (
-
-
-                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
-
-
-                        End Turn
-
-
-                    </button>
-
-
-                )}
-
-
+                {renderUnitList('BLACK')}
             </div>
-
-
-            {renderUnitList('BLACK')}
-
-
-        </div>
-
-
+        </>
     )
-
-
 }
 
-
 export default App
-
-    

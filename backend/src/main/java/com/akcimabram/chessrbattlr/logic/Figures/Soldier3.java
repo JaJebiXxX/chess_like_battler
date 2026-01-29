@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class Soldier3 extends Figure {
 
     public Soldier3() {
-        super(10, 0, 1);
+        super(10, 1, 1);
     }
 
     @Override
