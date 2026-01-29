@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -20,6 +21,7 @@ public class GameService {
     private UUID currentPlayerId;
     private List<UUID> movedFigureIds;
     private int turn;
+    private boolean specialTileActivated;
 
     public List<Figure> getAvailableFigures() {
         List<Figure> figures = new ArrayList<>();
@@ -50,6 +52,7 @@ public class GameService {
         currentPlayerId = player1.getId();
         movedFigureIds = new ArrayList<>();
         turn = 1;
+        specialTileActivated = false;
 
         for (int i = 0; i < board.getX(); i++) {
             for (int j = 0; j < board.getY(); j++) {
@@ -62,7 +65,21 @@ public class GameService {
                 board.fields[i][j] = new Field(i, j, type, null, value);
             }
         }
+
+        spawnSpecialTile();
+
         recalculateAllPossibleMoves();
+    }
+
+    private void spawnSpecialTile() {
+        // Random special tile from y3 to y6 and x0 to x9
+        Random rand = new Random();
+        int specialX = rand.nextInt(10);
+        int specialY = rand.nextInt(4) + 3; // y3 to y6
+
+        FieldType[] specialTypes = {FieldType.MANA, FieldType.HP_FIGURE, FieldType.HP_BASE, FieldType.ATT_FIGURE};
+        FieldType randomType = specialTypes[rand.nextInt(specialTypes.length)];
+        board.fields[specialX][specialY].fieldType = randomType;
     }
 
     public GameState getGameState() {
@@ -134,6 +151,7 @@ public class GameService {
             fromField.whosHere = null;
         }
         movedFigureIds.add(attacker.getId());
+        applySpecialFieldEffects(toField, attacker);
 
         // Check for base attack
         Figure finalFigureOnToField = toField.whosHere;
@@ -148,6 +166,33 @@ public class GameService {
         }
 
         recalculateAllPossibleMoves();
+    }
+
+    private void applySpecialFieldEffects(Field field, Figure figure) {
+        if (field.fieldType == null || field.fieldType == FieldType.NORMAL) {
+            return;
+        }
+
+        Player currentPlayer = getCurrentPlayer();
+        specialTileActivated = true;
+
+        switch (field.fieldType) {
+            case MANA:
+                currentPlayer.setMana(currentPlayer.getMana() + 1);
+                break;
+            case HP_FIGURE:
+                figure.setHealth(figure.getHealth() + 1);
+                break;
+            case HP_BASE:
+                // Check if it's NOT a base tile (the ones at y=0 or y=9)
+                if (field.coordinateY != 0 && field.coordinateY != 9) {
+                    currentPlayer.setHp(currentPlayer.getHp() + 1);
+                }
+                break;
+            case ATT_FIGURE:
+                figure.setDamage(figure.getDamage() + 1);
+                break;
+        }
     }
 
     public void placeFigure(String type, String color, int x, int y) {
@@ -167,7 +212,8 @@ public class GameService {
             throw new InvalidPlacementException("Black figures can only be placed in the top three rows.");
         }
 
-        if (board.fields[x][y].whosHere != null) {
+        Field targetField = board.fields[x][y];
+        if (targetField.whosHere != null) {
             throw new InvalidPlacementException("Cannot place figure on an occupied field.");
         }
 
@@ -183,14 +229,17 @@ public class GameService {
         }
 
         if (currentPlayer.getMana() < figure.getCost()) {
-            throw new GameException("Not enough mana.");
+            throw new InvalidPlacementException("Not enough mana.");
         }
         currentPlayer.setMana(currentPlayer.getMana() - figure.getCost());
 
         figure.setType(type);
         figure.setColor(color);
-        board.fields[x][y].whosHere = figure;
+        targetField.whosHere = figure;
         movedFigureIds.add(figure.getId());
+
+        applySpecialFieldEffects(targetField, figure);
+
         recalculateAllPossibleMoves();
     }
 
@@ -203,7 +252,36 @@ public class GameService {
             turn++;
             player1.setMana(Math.min(player1.getMaxMana(), turn));
         }
+
+        if (specialTileActivated) {
+            rotateSpecialTile();
+            specialTileActivated = false;
+        }
+
         movedFigureIds.clear();
+    }
+
+    private void rotateSpecialTile() {
+        // Find current special tile and make it normal
+        for (int i = 0; i < board.getX(); i++) {
+            for (int j = 0; j < board.getY(); j++) {
+                FieldType type = board.fields[i][j].fieldType;
+                // Normalize all special tiles, but keep the permanent base tiles at the edges
+                if (type != FieldType.NORMAL) {
+                    if (type == FieldType.HP_BASE) {
+                        // Only keep HP_BASE if it's on the edge rows (0 or 9)
+                        int y = board.fields[i][j].coordinateY;
+                        if (y != 0 && y != 9) {
+                            board.fields[i][j].fieldType = FieldType.NORMAL;
+                        }
+                    } else {
+                        board.fields[i][j].fieldType = FieldType.NORMAL;
+                    }
+                }
+            }
+        }
+        // Spawn a new one
+        spawnSpecialTile();
     }
 
     private Player getCurrentPlayer() {

@@ -35,6 +35,3 @@ public class Field {
         this.value = value;
     }
 }
-
-
-//board 10x10 fieldami

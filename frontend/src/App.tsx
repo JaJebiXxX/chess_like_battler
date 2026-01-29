@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import toast, { Toaster } from 'react-hot-toast';
+import {useState, useEffect} from 'react'
+import toast, {Toaster} from 'react-hot-toast';
 import './App.css'
 import circleWhite from './assets/svg-white/circle.svg'
 import circleBlack from './assets/svg-black/circle.svg'
@@ -15,6 +15,13 @@ import triangleBlack from './assets/svg-black/triangle.svg'
 import plusWhite from './assets/svg-white/plus.svg'
 import plusBlack from './assets/svg-black/plus.svg'
 
+import pawnImg from './assets/screeny/pawn.png'
+import knightImg from './assets/screeny/knight.png'
+import bishopImg from './assets/screeny/bishop.png'
+import rookImg from './assets/screeny/rook.png'
+import queenImg from './assets/screeny/queen.png'
+import kingImg from './assets/screeny/king.png'
+
 
 // Define types based on backend structure
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -23,7 +30,8 @@ enum FieldType {
     NORMAL = "NORMAL",
     MANA = "MANA",
     HP_FIGURE = "HP_FIGURE",
-    HP_BASE = "HP_BASE"
+    HP_BASE = "HP_BASE",
+    ATT_FIGURE = "ATT_FIGURE"
 }
 
 
@@ -107,6 +115,15 @@ const FIGURE_NAMES: Record<FigureType, string> = {
     PLUS: 'King'
 };
 
+const FIGURE_IMAGES: Record<FigureType, string> = {
+    CIRCLE: pawnImg,
+    TRIANGLE: knightImg,
+    HEXAGON: bishopImg,
+    SQUARE: rookImg,
+    STAR: queenImg,
+    PLUS: kingImg
+};
+
 type FigureType = 'CIRCLE' | 'HEXAGON' | 'PLUS' | 'SQUARE' | 'STAR' | 'TRIANGLE';
 type FigureColor = 'WHITE' | 'BLACK';
 
@@ -118,6 +135,7 @@ function App() {
     const [selectedField, setSelectedField] = useState<Field | null>(null);
     const [availableUnits, setAvailableUnits] = useState<UnitDefinition[]>([]);
     const [winner, setWinner] = useState<string | null>(null);
+    const [hoveredUnit, setHoveredUnit] = useState<UnitDefinition | null>(null);
 
     useEffect(() => {
         const fetchGameState = fetch('http://localhost:8080/api/game/state')
@@ -170,933 +188,582 @@ function App() {
         }
     }, [gameState]);
 
-        const handleFieldClick = (field: Field) => {
+    const handleFieldClick = (field: Field) => {
 
-            if (winner) return;
+        if (winner) return;
 
-    
 
-            const currentTurnColor = gameState?.player1.id === gameState?.currentPlayerId ? 'WHITE' : 'BLACK';
+        const currentTurnColor = gameState?.player1.id === gameState?.currentPlayerId ? 'WHITE' : 'BLACK';
 
-    
 
-            if (selectedField && selectedField.whosHere) {
+        if (selectedField && selectedField.whosHere) {
 
-                const canMove = selectedField.possibleMoves?.some(
+            const canMove = selectedField.possibleMoves?.some(
+                m => m.x === field.coordinateX && m.y === field.coordinateY
+            );
 
-                    m => m.x === field.coordinateX && m.y === field.coordinateY
 
-                );
+            if (canMove) {
 
-    
+                fetch(`http://localhost:8080/api/game/move/${selectedField.coordinateX}/${selectedField.coordinateY}/${field.coordinateX}/${field.coordinateY}`, {
 
-                if (canMove) {
+                    method: 'POST'
 
-                    fetch(`http://localhost:8080/api/game/move/${selectedField.coordinateX}/${selectedField.coordinateY}/${field.coordinateX}/${field.coordinateY}`, {
+                })
 
-                        method: 'POST'
+                    .then(res => {
 
-                    })
-
-                        .then(res => {
-
-                            if (!res.ok) return res.text().then(text => { throw new Error(text) });
-
-                            return res.json();
-
-                        })
-
-                        .then((data: GameState) => {
-
-                            setGameState(data);
-
-                            setSelectedField(null);
-
-                        })
-
-                        .catch(err => toast.error(err.message));
-
-                    return;
-
-                }
-
-            }
-
-    
-
-            if (field.whosHere) {
-
-                if (field.whosHere.color !== currentTurnColor) {
-
-                    toast.error("It's not your turn!");
-
-                    return;
-
-                }
-
-                if (gameState?.movedFigureIds.includes(field.whosHere.id)) {
-
-                    toast.error("This unit has already moved.");
-
-                    return;
-
-                }
-
-                setSelectedField(field);
-
-            } else {
-
-                setSelectedField(null);
-
-            }
-
-        };
-
-    
-
-        const isHighlighted = (x: number, y: number) => {
-
-            if (winner) return false;
-
-            return selectedField?.possibleMoves?.some(m => m.x === x && m.y === y);
-
-        };
-
-    
-
-        const isPlacementValid = (unit: UnitDefinition, y: number) => {
-
-            if (winner) return false;
-
-            if (unit.color === 'WHITE') {
-
-                return y >= 7 && y <= 9;
-
-            } else if (unit.color === 'BLACK') {
-
-                return y >= 0 && y <= 2;
-
-            }
-
-            return false;
-
-        };
-
-    
-
-        const [draggedUnit, setDraggedUnit] = useState<UnitDefinition | null>(null);
-
-    
-
-        const handleDragStart = (event: React.DragEvent<HTMLDivElement>, unit: UnitDefinition) => {
-
-            if (winner) {
-
-                event.preventDefault();
-
-                return;
-
-            }
-
-            const currentTurnColor = gameState?.player1.id === gameState?.currentPlayerId ? 'WHITE' : 'BLACK';
-
-            if (unit.color !== currentTurnColor) {
-
-                toast.error("It's not your turn to place units!");
-
-                event.preventDefault();
-
-                return;
-
-            }
-
-            setDraggedUnit(unit);
-
-            event.dataTransfer.setData('unit', JSON.stringify(unit));
-
-            event.dataTransfer.effectAllowed = 'copy';
-
-        };
-
-    
-
-        const handleDragEnd = () => {
-
-            setDraggedUnit(null);
-
-        };
-
-    
-
-        const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-
-            if (winner) return;
-
-            event.preventDefault();
-
-            event.dataTransfer.dropEffect = 'copy';
-
-        };
-
-    
-
-            const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetX: number, targetY: number) => {
-
-    
-
-                if (winner) return;
-
-    
-
-                event.preventDefault();
-
-    
-
-                setDraggedUnit(null);
-
-    
-
-                const unitData = event.dataTransfer.getData('unit');
-
-    
-
-        
-
-    
-
-                if (unitData && gameState) {
-
-    
-
-                    const unit: UnitDefinition = JSON.parse(unitData);
-
-    
-
-        
-
-    
-
-                    fetch(`http://localhost:8080/api/game/place/${unit.type}/${unit.color}/${targetX}/${targetY}`, {
-
-    
-
-                        method: 'POST'
-
-    
-
-                    })
-
-    
-
-                        .then(res => {
-
-    
-
-                            if (!res.ok) {
-
-    
-
-                                return res.text().then(text => { throw new Error(text) });
-
-    
-
-                            }
-
-    
-
-                            return res.json();
-
-    
-
-                        })
-
-    
-
-                        .then((data: GameState) => {
-
-    
-
-                            setGameState(data);
-
-    
-
-                        })
-
-    
-
-                        .catch(err => {
-
-    
-
-                            toast.error(err.message);
-
-    
-
+                        if (!res.ok) return res.text().then(text => {
+                            throw new Error(text)
                         });
 
-    
+                        return res.json();
 
-                }
-
-    
-
-            };
-
-    
-
-        
-
-    
-
-            const handleEndTurn = () => {
-
-    
-
-                fetch('http://localhost:8080/api/game/end-turn', { method: 'POST' })
-
-    
-
-                    .then(res => res.json())
-
-    
+                    })
 
                     .then((data: GameState) => {
 
-    
-
                         setGameState(data);
-
-    
 
                         setSelectedField(null);
 
-    
-
                     })
-
-    
 
                     .catch(err => toast.error(err.message));
 
-    
+                return;
 
-            };
+            }
 
-    
+        }
 
-        
 
-    
+        if (field.whosHere) {
 
-            const renderPlayerInfo = (player: PlayerState, isTop: boolean) => (
+            if (field.whosHere.color !== currentTurnColor) {
 
-    
+                toast.error("It's not your turn!");
 
-                <div className={`player-info ${isTop ? 'player-top' : 'player-bottom'}`}>
+                return;
 
-    
+            }
 
-                    <div className="player-name">{player.name}</div>
+            if (gameState?.movedFigureIds.includes(field.whosHere.id)) {
 
-    
+                toast.error("This unit has already moved.");
 
-                    <div className="player-stats-container">
+                return;
 
-    
+            }
 
-                        <div className="hp-label" style={{ color: '#ff5555', fontWeight: 'bold', marginRight: '15px' }}>
+            setSelectedField(field);
 
-    
+        } else {
 
-                            HP: {player.hp} / {player.maxHp}
+            setSelectedField(null);
 
-    
+        }
 
-                        </div>
+    };
 
-    
 
-                        <div className="mana-container">
+    const isHighlighted = (x: number, y: number) => {
 
-    
+        if (winner) return false;
 
-                            <div className="mana-label">Mana: {player.mana} / {player.maxMana}</div>
+        return selectedField?.possibleMoves?.some(m => m.x === x && m.y === y);
 
-    
+    };
 
-                            <div className="mana-bar-bg">
 
-    
+    const isPlacementValid = (unit: UnitDefinition, y: number) => {
 
-                                <div
+        if (winner) return false;
 
-    
+        if (unit.color === 'WHITE') {
 
-                                    className="mana-bar-fill"
+            return y >= 7 && y <= 9;
 
-    
+        } else if (unit.color === 'BLACK') {
 
-                                    style={{ width: `${(player.mana / player.maxMana) * 100}%` }}
+            return y >= 0 && y <= 2;
 
-    
+        }
 
-                                ></div>
+        return false;
 
-    
+    };
 
-                                <div className="mana-pips">
 
-    
+    const [draggedUnit, setDraggedUnit] = useState<UnitDefinition | null>(null);
 
-                                    {Array.from({ length: player.maxMana - 1 }).map((_, i) => (
 
-    
+    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, unit: UnitDefinition) => {
 
-                                        <div key={i} className="mana-pip" style={{ left: `${((i + 1) / player.maxMana) * 100}%` }}></div>
+        if (winner) {
 
-    
+            event.preventDefault();
 
-                                    ))}
+            return;
 
-    
+        }
 
-                                </div>
+        const currentTurnColor = gameState?.player1.id === gameState?.currentPlayerId ? 'WHITE' : 'BLACK';
 
-    
+        if (unit.color !== currentTurnColor) {
 
-                            </div>
+            toast.error("It's not your turn to place units!");
 
-    
+            event.preventDefault();
 
-                        </div>
+            return;
 
-    
+        }
 
-                    </div>
+        setDraggedUnit(unit);
 
-    
+        event.dataTransfer.setData('unit', JSON.stringify(unit));
+
+        event.dataTransfer.effectAllowed = 'copy';
+
+    };
+
+
+    const handleDragEnd = () => {
+
+        setDraggedUnit(null);
+
+    };
+
+
+    const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+
+        if (winner) return;
+
+        event.preventDefault();
+
+        event.dataTransfer.dropEffect = 'copy';
+
+    };
+
+
+    const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetX: number, targetY: number) => {
+
+
+        if (winner) return;
+
+
+        event.preventDefault();
+
+
+        setDraggedUnit(null);
+
+
+        const unitData = event.dataTransfer.getData('unit');
+
+
+        if (unitData && gameState) {
+
+
+            const unit: UnitDefinition = JSON.parse(unitData);
+
+
+            fetch(`http://localhost:8080/api/game/place/${unit.type}/${unit.color}/${targetX}/${targetY}`, {
+
+
+                method: 'POST'
+
+
+            })
+
+
+                .then(res => {
+
+
+                    if (!res.ok) {
+
+
+                        return res.text().then(text => {
+                            throw new Error(text)
+                        });
+
+
+                    }
+
+
+                    return res.json();
+
+
+                })
+
+
+                .then((data: GameState) => {
+
+
+                    setGameState(data);
+
+
+                })
+
+
+                .catch(err => {
+
+
+                    toast.error(err.message);
+
+
+                });
+
+
+        }
+
+
+    };
+
+
+    const handleEndTurn = () => {
+
+
+        fetch('http://localhost:8080/api/game/end-turn', {method: 'POST'})
+
+
+            .then(res => res.json())
+
+
+            .then((data: GameState) => {
+
+
+                setGameState(data);
+
+
+                setSelectedField(null);
+
+
+            })
+
+
+            .catch(err => toast.error(err.message));
+
+
+    };
+
+
+    const renderPlayerInfo = (player: PlayerState, isTop: boolean) => (
+
+
+        <div className={`player-info ${isTop ? 'player-top' : 'player-bottom'}`}>
+
+
+            <div className="player-name">{player.name}</div>
+
+
+            <div className="player-stats-container">
+
+
+                <div className="hp-label" style={{color: '#ff5555', fontWeight: 'bold', marginRight: '15px'}}>
+
+
+                    HP: {player.hp} / {player.maxHp}
+
 
                 </div>
 
-    
 
-            );
+                <div className="mana-container">
 
-    
 
-        
+                    <div className="mana-label">Mana: {player.mana} / {player.maxMana}</div>
 
-    
 
-            const renderUnitList = (color: FigureColor) => {
+                    <div className="mana-bar-bg">
 
-    
 
-                return (
+                        <div
 
-    
 
-                    <div className={`unit-panel ${color.toLowerCase()}-panel`}>
+                            className="mana-bar-fill"
 
-    
 
-                        <h2>{color} Units</h2>
+                            style={{width: `${(player.mana / player.maxMana) * 100}%`}}
 
-    
 
-                        <div className="unit-list">
+                        ></div>
 
-    
 
-                            {availableUnits.filter(u => u.color === color).map(unit => (
+                        <div className="mana-pips">
 
-    
 
-                                <div
+                            {Array.from({length: player.maxMana - 1}).map((_, i) => (
 
-    
 
-                                    key={unit.id}
+                                <div key={i} className="mana-pip"
+                                     style={{left: `${((i + 1) / player.maxMana) * 100}%`}}></div>
 
-    
-
-                                    className="unit-card"
-
-    
-
-                                    draggable
-
-    
-
-                                    onDragStart={(e) => handleDragStart(e, unit)}
-
-    
-
-                                    onDragEnd={handleDragEnd}
-
-    
-
-                                >
-
-    
-
-                                    <div className="unit-icon">
-
-    
-
-                                        <img src={FIGURE_ICONS[unit.color][unit.type]} alt={unit.name} />
-
-    
-
-                                    </div>
-
-    
-
-                                    <div className="unit-details">
-
-    
-
-                                        <h3>{unit.name}</h3>
-
-    
-
-                                        <div className="unit-stats">
-
-    
-
-                                            <span title="Mana Cost">💧 {unit.cost}</span>
-
-    
-
-                                            <span title="Health">❤️ {unit.health}</span>
-
-    
-
-                                            <span title="Damage">⚔️ {unit.damage}</span>
-
-    
-
-                                        </div>
-
-    
-
-                                    </div>
-
-    
-
-                                </div>
-
-    
 
                             ))}
 
-    
 
                         </div>
 
-    
 
                     </div>
 
-    
-
-                );
-
-    
-
-            };
-
-    
-
-        
-
-    
-
-            const GameOverOverlay = ({ winner, onRestart }: { winner: string, onRestart: () => void }) => (
-
-    
-
-                <div className="game-over-overlay">
-
-    
-
-                    <div className="game-over-content">
-
-    
-
-                        <h2>Game Over</h2>
-
-    
-
-                        <p>{winner} wins!</p>
-
-    
-
-                        <button onClick={onRestart}>Play Again</button>
-
-    
-
-                    </div>
-
-    
 
                 </div>
 
-    
 
-            );
+            </div>
 
-    
 
-        
+        </div>
 
-    
 
-                    if (loading) return <div>Loading game...</div>;
+    );
 
-    
 
-        
+    const renderUnitList = (color: FigureColor) => {
 
-    
 
-                    if (error) return <div>Error: {error}</div>;
+        return (
 
-    
 
-        
+            <div className={`unit-panel ${color.toLowerCase()}-panel`}>
 
-    
 
-                    if (!gameState) return <div>No game data</div>;
+                <h2>{color} Units</h2>
 
-    
 
-        
+                <div className="unit-list">
 
-    
 
-                
+                    {availableUnits.filter(u => u.color === color).map(unit => (
 
-    
 
-        
+                        <div
 
-    
 
-                    const isPlayer1Turn = gameState.currentPlayerId === gameState.player1.id;
+                            key={unit.id}
 
-    
 
-        
+                            className="unit-card"
 
-    
 
-                
+                            draggable
 
-    
 
-        
+                            onDragStart={(e) => handleDragStart(e, unit)}
 
-    
 
-                    return (
+                            onDragEnd={handleDragEnd}
 
-    
+                            onMouseEnter={() => setHoveredUnit(unit)}
 
-        
+                            onMouseLeave={() => setHoveredUnit(null)}
 
-    
 
-                        <div className="app-container">
+                        >
 
-    
 
-        
+                            <div className="unit-icon">
 
-    
 
-                            {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()} />}
+                                <img src={FIGURE_ICONS[unit.color][unit.type]} alt={unit.name}/>
 
-    
 
-        
+                            </div>
 
-    
 
-                            <Toaster
+                            <div className="unit-details">
 
-    
 
-        
+                                <h3>{unit.name}</h3>
 
-    
 
-                                toastOptions={{
+                                <div className="unit-stats">
 
-    
 
-        
+                                    <span title="Mana Cost">💧 {unit.cost}</span>
 
-    
 
-                                    style: {
+                                    <span title="Health">❤️ {unit.health}</span>
 
-    
 
-        
+                                    <span title="Damage">⚔️ {unit.damage}</span>
 
-    
-
-                                        background: '#333',
-
-    
-
-        
-
-    
-
-                                        color: '#fff',
-
-    
-
-        
-
-    
-
-                                    },
-
-    
-
-        
-
-    
-
-                                }}
-
-    
-
-        
-
-    
-
-                            />
-
-    
-
-        
-
-    
-
-                            {renderUnitList('WHITE')}
-
-    
-
-        
-
-    
-
-                
-
-    
-
-        
-
-    
-
-                            <div className="game-area">
-
-    
-
-        
-
-    
-
-                                <div style={{color: "white"}}>
-
-    
-
-        
-
-    
-
-                                    <h1>ChessR Battler</h1>
-
-    
-
-        
-
-    
-
-                                    <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
-
-    
-
-        
-
-    
 
                                 </div>
 
-    
 
-        
+                            </div>
 
-    
+                            {hoveredUnit?.id === unit.id && (
+                                <div className={`figure-preview-container unit-preview ${color === 'BLACK' ? 'preview-left' : 'preview-right'}`}>
+                                    <img 
+                                        src={FIGURE_IMAGES[unit.type]} 
+                                        alt="preview" 
+                                        className="figure-preview-image"
+                                    />
+                                </div>
+                            )}
 
-                
 
-    
+                        </div>
 
-        
 
-    
+                    ))}
 
-                                {/* End Turn button above Player 2 (enemy) if it's Player 1's turn */}
 
-    
+                </div>
 
-        
 
-    
+            </div>
 
-                                {isPlayer1Turn && (
 
-    
+        );
 
-        
 
-    
+    };
 
-                                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
 
-    
+    const GameOverOverlay = ({winner, onRestart}: { winner: string, onRestart: () => void }) => (
 
-        
 
-    
+        <div className="game-over-overlay">
 
-                                        End Turn
 
-    
+            <div className="game-over-content">
 
-        
 
-    
+                <h2>Game Over</h2>
 
-                                    </button>
 
-    
+                <p>{winner} wins!</p>
 
-        
 
-    
+                <button onClick={onRestart}>Play Again</button>
 
-                                )}
 
-    
+            </div>
 
-        
 
-    
+        </div>
 
-                                {renderPlayerInfo(gameState.player2, true)}
 
-    
+    );
 
-        
 
-    
+    if (loading) return <div>Loading game...</div>;
 
-                
 
-    
+    if (error) return <div>Error: {error}</div>;
 
-        
 
-    
+    if (!gameState) return <div>No game data</div>;
 
-                
 
-    
+    const isPlayer1Turn = gameState.currentPlayerId === gameState.player1.id;
 
-        
 
-    
+    return (
 
-                                <div className="board-container">
 
-    
+        <div className="app-container">
 
-        
 
-    
+            {winner && <GameOverOverlay winner={winner} onRestart={() => window.location.reload()}/>}
 
-                                    <div className="board">
 
-    
+            <Toaster
 
-        
 
-    
+                toastOptions={{
 
-                                        {gameState.board.fields.map((column, colIndex) => (
 
-    
+                    style: {
 
-        
 
-    
+                        background: '#333',
 
-                                            <div key={`col-${colIndex}`} className="board-column">
 
-    
+                        color: '#fff',
 
-        
 
-    
+                    },
 
-                                                {column.map((field, rowIndex) => {
 
-    
+                }}
 
-        
 
-    
+            />
 
-                                                    const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
 
-    
+            {renderUnitList('WHITE')}
 
-        
 
-    
+            <div className="game-area">
 
-                                                    return (
 
-    
+                <div style={{color: "white"}}>
 
-        
 
-    
+                    <h1>ChessR Battler</h1>
 
-                                                        <div
 
-    
+                    <h2>Current turn: {isPlayer1Turn ? gameState.player1.name : gameState.player2.name}</h2>
 
-        
 
-    
+                </div>
 
-                                                            key={`field-${field.coordinateX}-${field.coordinateY}`}
 
-    
+                {/* End Turn button for Player 2 */}
 
-        
 
-    
+                {!isPlayer1Turn && (
 
-                                                            className={`board-field 
+
+                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
+
+
+                        End Turn
+
+
+                    </button>
+
+
+                )}
+
+
+                {renderPlayerInfo(gameState.player2, true)}
+
+
+                <div className="board-container">
+
+
+                    <div className="board">
+
+
+                        {gameState.board.fields.map((column, colIndex) => (
+
+
+                            <div key={`col-${colIndex}`} className="board-column">
+
+
+                                {column.map((field, rowIndex) => {
+
+
+                                    const hasMoved = field.whosHere && gameState.movedFigureIds.includes(field.whosHere.id);
+
+
+                                    return (
+
+
+                                        <div
+
+
+                                            key={`field-${field.coordinateX}-${field.coordinateY}`}
+
+
+                                            className={`board-field 
 
     
 
@@ -1154,332 +821,109 @@ function App() {
 
                                                         `}
 
-    
 
-        
+                                            title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
 
-    
 
-                                                            title={`X:${field.coordinateX}, Y:${field.coordinateY} Type:${field.fieldType}`}
+                                            onDragOver={handleDragOver}
 
-    
 
-        
+                                            onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
+                                            onClick={() => handleFieldClick(field)}
+                                        >
 
-    
 
-                                                            onDragOver={handleDragOver}
+                                            {field.fieldType !== FieldType.NORMAL && field.value}
 
-    
 
-        
+                                            {field.whosHere && (
 
-    
 
-                                                            onDrop={(e) => handleDrop(e, field.coordinateX, field.coordinateY)}
+                                                <>
 
-    
 
-        
+                                                    <img
 
-    
 
-                                                            onClick={() => handleFieldClick(field)}
+                                                        src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
 
-    
 
-        
+                                                        alt={`${field.whosHere.color} ${field.whosHere.type}`}
 
-    
 
-                                                        >
+                                                        style={{width: '80%', height: '80%'}}
 
-    
 
-        
+                                                    />
 
-    
 
-                                                            {field.fieldType !== FieldType.NORMAL && field.value}
+                                                    <div className="figure-health">{field.whosHere.health}</div>
 
-    
 
-        
+                                                    <div className="figure-damage">{field.whosHere.damage}</div>
+                                                </>
 
-    
 
-                                                            {field.whosHere && (
+                                            )}
 
-    
 
-        
+                                        </div>
 
-    
 
-                                                                <>
+                                    )
 
-    
 
-        
+                                })}
 
-    
-
-                                                                    <img
-
-    
-
-        
-
-    
-
-                                                                        src={FIGURE_ICONS[field.whosHere.color][field.whosHere.type]}
-
-    
-
-        
-
-    
-
-                                                                        alt={`${field.whosHere.color} ${field.whosHere.type}`}
-
-    
-
-        
-
-    
-
-                                                                        style={{ width: '80%', height: '80%' }}
-
-    
-
-        
-
-    
-
-                                                                    />
-
-    
-
-        
-
-    
-
-                                                                    <div className="figure-health">{field.whosHere.health}</div>
-
-    
-
-        
-
-    
-
-                                                                    <div className="figure-damage">{field.whosHere.damage}</div>
-
-    
-
-        
-
-    
-
-                                                                </>
-
-    
-
-        
-
-    
-
-                                                            )}
-
-    
-
-        
-
-    
-
-                                                        </div>
-
-    
-
-        
-
-    
-
-                                                    )
-
-    
-
-        
-
-    
-
-                                                })}
-
-    
-
-        
-
-    
-
-                                            </div>
-
-    
-
-        
-
-    
-
-                                        ))}
-
-    
-
-        
-
-    
-
-                                    </div>
-
-    
-
-        
-
-    
-
-                                </div>
-
-    
-
-        
-
-    
-
-                
-
-    
-
-        
-
-    
-
-                                {renderPlayerInfo(gameState.player1, false)}
-
-    
-
-        
-
-    
-
-                                {/* End Turn button above Player 1 (enemy) if it's Player 2's turn */}
-
-    
-
-        
-
-    
-
-                                {!isPlayer1Turn && (
-
-    
-
-        
-
-    
-
-                                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
-
-    
-
-        
-
-    
-
-                                        End Turn
-
-    
-
-        
-
-    
-
-                                    </button>
-
-    
-
-        
-
-    
-
-                                )}
-
-    
-
-        
-
-    
 
                             </div>
 
-    
 
-        
+                        ))}
 
-    
 
-                
+                    </div>
 
-    
 
-        
+                </div>
 
-    
 
-                            {renderUnitList('BLACK')}
+                {renderPlayerInfo(gameState.player1, false)}
 
-    
 
-        
+                {/* End Turn button for Player 1 */}
 
-    
 
-                        </div>
+                {isPlayer1Turn && (
 
-    
 
-        
+                    <button onClick={handleEndTurn} disabled={!!winner} className="end-turn-button">
 
-    
 
-                    )
+                        End Turn
 
-    
 
-        
+                    </button>
 
-    
 
-                }
+                )}
 
-    
 
-        
+            </div>
 
-    
 
-                
+            {renderUnitList('BLACK')}
 
-    
 
-        
+        </div>
 
-    
 
-                
+    )
 
-    
 
-        
+}
 
-    
 
-                export default App
+export default App
 
     

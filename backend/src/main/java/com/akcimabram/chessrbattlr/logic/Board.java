@@ -19,7 +19,3 @@ public class Board {
         return y;
     }
 }
-
-//json
-// board {
-// { field1: ziutek(10), mozliwenextruchy({1,1},{2,2}) }

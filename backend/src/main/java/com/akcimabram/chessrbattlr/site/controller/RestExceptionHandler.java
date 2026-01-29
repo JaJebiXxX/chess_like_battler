@@ -1,7 +1,6 @@
 package com.akcimabram.chessrbattlr.site.controller;
 
-import com.akcimabram.chessrbattlr.logic.exceptions.InvalidMoveException;
-import com.akcimabram.chessrbattlr.logic.exceptions.InvalidPlacementException;
+import com.akcimabram.chessrbattlr.logic.exceptions.GameException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -12,8 +11,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ControllerAdvice
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler({ InvalidMoveException.class, InvalidPlacementException.class })
-    public ResponseEntity<Object> handleInvalidGameAction(RuntimeException ex, WebRequest request) {
+    @ExceptionHandler({ GameException.class })
+    public ResponseEntity<Object> handleGameException(GameException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
         return new ResponseEntity<>(bodyOfResponse, HttpStatus.BAD_REQUEST);
     }
